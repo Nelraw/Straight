@@ -13,72 +13,89 @@ const CWD = process.cwd();
 
 /// -------------------------------- ///
 
-type ErrorKwargs = Global.Error.ErrorKwargs;
+type ErrorOptions<D extends Global.Dict = Global.Dict> = Global.Error.ErrorOptions<D>;
+type ErrorArgs<D extends Global.Dict | undefined = undefined> = Global.Error.ErrorArgs<D>;
 
-class BaseError extends Error {
+class ProcessError extends Error {
 
-    readonly kwargs!: ErrorKwargs;
-
-    constructor(message: string) {
-        super(message);
-    }
-}
-
-class ProcessError extends BaseError {
-
-    // declare readonly kwargs: Global.Kwargs<this>;
-    
     declare name: string;
 
-    code: number;
-    reason: string;
-    details: string;
+    declare code: number;
+    declare reason: string;
+    declare details: string;
 
-    source?: Global.Kwargs<this>['source'];
+    source?: object;
 
-    constructor(kwargs: string | Global.Error.ErrorKwargs) {
+    constructor(options: string | ErrorOptions) {
         try {
-            let message: string = typeof kwargs !== 'string' 
-                ? kwargs.message
-                : kwargs;
+            let message: string = typeof options !== 'string' 
+                ? options.message
+                : options;
 
-            if (typeof kwargs === 'string') {
-                kwargs = { message: kwargs };
+            if (typeof options === 'string') {
+                options = { message: options };
             }
 
             super(message);
 
-            const { name, code, reason, details } = kwargs;
+            const { name, code, reason, details } = options;
 
             if (name) this.name = name;
             else makerOf(this).name;
     
-            this.code = code ?? -1;
-            this.reason = reason ?? `unknown`;
-            this.details = details ?? ``;
+            options.code = code ?? -1;
+            options.reason = reason ?? `unknown`;
+            options.details = details ?? ``;
 
-            Object.defineProperty(this, 'kwargs', {
-                value: kwargs ?? {}, enumerable: false
-            });
+            for (const key in options) {
+                const value = options[key];
+                const enumerable = false;
+
+                Object.defineProperty(this, key, { value, enumerable });
+            }
 
         } catch(err) { throw err; }
     }
+
+    /// -------------------------------- ///
 
     get maker() { return makerOf(this); }
 }
 
+// type PropertyDescriptorMode = 'value' | 'get' | 'set';
+
+// type PropertyDescriptorSetting = { value: any } | { get: () => any } | { set: (value: any) => void }
+//     | { get: () => any; set: (value: any) => void }
+
+// type PropertyDescriptorValue = { [K in keyof PropertyDescriptorMode]: PropertyDescriptorSetting };
+
+// type PropertyDescriptorOptions = {
+//     enumerable?: boolean;
+//     configurable?: boolean,
+//     writable?: boolean
+// };
+
+// type PropertyDescriptor = PropertyDescriptorValue & PropertyDescriptorOptions;
+
+// type PropertiesDescription = { [key: string]: PropertyDescriptor };
+
+
 class ProcessObject {
 
-    readonly kwargs!: Global.Kwargs<this>;
-
-    constructor(kwargs?: Global.Dict) {
+    constructor(kwargs: { [key: string]: any } = {}) {
         try {
-            Object.defineProperty(this, 'kwargs', {
-                value: kwargs ?? {}, enumerable: false
-            });
+            for (const key in kwargs) {
+                const value = kwargs[key];
+                const enumerable = false;
+
+                Object.defineProperty(this, key, { value, enumerable });
+            }
+
 
         } catch(err) { throw err; }
     }
+
+    /// -------------------------------- ///
 
     get maker() { return makerOf(this); }
 }
@@ -87,24 +104,26 @@ class ProcessObject {
 
 class ProcessDataError extends ProcessError {
 
-    constructor(kwargs: ErrorKwargs) {
-        super(kwargs);
+    constructor(options: string | ErrorOptions) {
+        super(options);
     }
 }
 
 class ProcessData extends ProcessObject {
 
+    declare auto: boolean;
+
     data: Global.Process.ProcessDataProperties = {};
 
-    constructor(kwargs: Global.Process.ProcessDataKwargs) {
-        try {
-            super(kwargs);
-            
-            kwargs.auto ??= true;
-            kwargs.read = kwargs.read.bind(this);
+    constructor(options: Global.Process.ProcessDataOptions) {
+        try {            
+            options.auto ??= true;
+
+            const { auto, read } = options;
+
+            super({ auto });
 
             const { data } = this;
-            const { auto, read } = kwargs;
             const update = () => Object.assign(data, read());
 
             if (auto === true) update();
@@ -233,4 +252,6 @@ export {
     Process, ProcessMetadata,
 
     ProcessObject, ProcessError,
+
+    ErrorOptions, ErrorArgs
 }

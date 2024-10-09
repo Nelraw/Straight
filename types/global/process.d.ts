@@ -18,7 +18,7 @@ declare namespace Global.Process {
     type ProcessDataProperties = Dict<Primitive>;
     type ProcessDataReader = (...args: any[]) => ProcessDataProperties;
 
-    type ProcessDataKwargs = {
+    type ProcessDataOptions = {
         auto?: boolean; 
         read: ProcessDataReader;
     }

@@ -1,13 +1,15 @@
 
 declare namespace Global.Error {
-    type ErrorKwargs<D extends Dict = Dict> = Dict & {
+    type ErrorOptions<D extends Dict = Dict> = D & {
         message: string;
 
-        name?: string; code?: number;
-        reason?: string; details?: string;
+        name?: string;
+        code?: number;
+        reason?: string;
+        details?: string;
 
-        source?: { error?: Error, object?: any };
+        source?: { error?: Error, object?: object };
     }
-    
-    type ErrorArgs = ErrorKwargs | string;
+
+    type ErrorArgs<D extends Dict | undefined = undefined> = string | ErrorOptions<D>;
 }

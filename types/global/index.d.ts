@@ -1,12 +1,15 @@
 
 declare namespace Global {
 
-    type Dict<VT = any> = { [key: string]: VT };
-
-    type Kwargs<O extends Dict> = O extends { kwargs: infer KW } ? KW : never;
+    type Dict<VT = any, S extends number | undefined = undefined> = { [key: string]: VT } extends infer O
+        ? S extends undefined ? O :
+            ? Exctract<O, keyof O> extends L
+                ? UnionToTuple<L>['length'] extends S ? O : never
+                : never
+            : never;
     
-    type SizedDict<O extends Dict, VT extends any = any, S extends number = 1> = UnionToTuple<keyof O>['length'] extends S
-        ? O<VT> : never;
+    // type SizedDict<O extends Dict, VT = any, S extends number = 1> = UnionToTuple<keyof O>['length'] extends S
+    //     ? O<VT> : never;
 
     type Primitive<R extends boolean = false> = R extends false
         ? boolean | number | string | bigint | null | undefined
