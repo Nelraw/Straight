@@ -1,6 +1,6 @@
 
 import { ProcessObject } from './lib/core/Process.js';
-import { Print } from './lib/utils/functions/print.js';
+import { Print } from './lib/core/utils/functions/print.js';
 
 import njsp from './lib/core/njsp.js';
 
@@ -17,6 +17,6 @@ type Obj = { bits: 64; id: "2" };
 type Arr = Array<boolean>;
 
 
-type TestArr = Node.Objects.Values<Arr>;
+type TestArr = Global.Iterables.Values<Arr>;
 
-type Union = Node.Utils.TupleToUnion<Tuple>
+type Union = Global.TupleToUnion<Tuple>

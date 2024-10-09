@@ -5,7 +5,7 @@ import { readFileSync } from 'fs';
 
 /// -------------------------------- ///
 
-import { makerOf } from '../utils/functions/meta.js';
+import { makerOf } from './utils/functions/meta.js';
 
 /// -------------------------------- ///
 
@@ -15,8 +15,8 @@ const CWD = process.cwd();
 
 class BaseError extends Error {
 
-    static readonly kwargs: Node.Error.ErrorKwargs;
-    readonly kwargs!: Node.Error.ErrorKwargs;
+    static readonly kwargs: Global.Error.ErrorKwargs;
+    readonly kwargs!: Global.Error.ErrorKwargs;
 
     constructor(message: string) {
         super(message);
@@ -25,8 +25,8 @@ class BaseError extends Error {
 
 class ProcessError extends BaseError {
     
-    declare static readonly kwargs: Node.Error.ErrorKwargs;
-    declare readonly kwargs: Node.Error.ErrorKwargs;
+    declare static readonly kwargs: Global.Error.ErrorKwargs;
+    declare readonly kwargs: Global.Error.ErrorKwargs;
 
     declare name: string;
 
@@ -34,15 +34,15 @@ class ProcessError extends BaseError {
     reason: string;
     details: string;
 
-    source?: Node.Error.ErrorKwargs['source'];
+    source?: Global.Error.ErrorKwargs['source'];
 
-    constructor(kwargs: Node.Error.ErrorKwargs) {
+    constructor(kwargs: Global.Error.ErrorKwargs) {
         try {
             const message = typeof kwargs !== 'string' 
                 ? kwargs.message
                 : kwargs;
 
-            // kwargs = kwargs as Node.Error.ErrorKwargs;
+            // kwargs = kwargs as Global.Error.ErrorKwargs;
 
             super(message);
 
@@ -61,11 +61,11 @@ class ProcessError extends BaseError {
     get maker() { return makerOf(this); }
 }
 
-class ProcessObject<KW extends Node.Objects.Dict = Node.Objects.Dict> {
+class ProcessObject<KW extends Global.Dict = Global.Dict> {
     
     static readonly Error = ProcessError;
 
-    static readonly kwargs: Node.Objects.Dict;
+    static readonly kwargs: Global.Dict;
     readonly kwargs!: KW;
 
     constructor(kwargs?: KW) {
@@ -81,7 +81,7 @@ class ProcessObject<KW extends Node.Objects.Dict = Node.Objects.Dict> {
 
     protected get Error() { return makerOf(this).Error; }
     
-    error(args?: Node.Error.ErrorArgs) {
+    error(args?: Global.Error.ErrorArgs) {
         try {
             const error = this.Error;
 
@@ -95,23 +95,23 @@ class ProcessObject<KW extends Node.Objects.Dict = Node.Objects.Dict> {
 
 class ProcessDataError extends ProcessError {
 
-    declare static readonly kwargs: Node.Error.ErrorKwargs;
+    declare static readonly kwargs: Global.Error.ErrorKwargs;
 
-    constructor(kwargs: Node.Error.ErrorKwargs) {
+    constructor(kwargs: Global.Error.ErrorKwargs) {
         super(kwargs);
     }
 }
 
-class ProcessData extends ProcessObject<Node.Process.ProcessDataKwargs> {
+class ProcessData extends ProcessObject<Global.Process.ProcessDataKwargs> {
 
     static readonly Error = ProcessDataError;
 
-    declare static readonly kwargs: Node.Process.ProcessDataKwargs;
-    declare readonly kwargs: Node.Process.ProcessDataKwargs;
+    declare static readonly kwargs: Global.Process.ProcessDataKwargs;
+    declare readonly kwargs: Global.Process.ProcessDataKwargs;
 
-    data: Node.Process.ProcessDataProperties = {};
+    data: Global.Process.ProcessDataProperties = {};
 
-    constructor(kwargs: Node.Process.ProcessDataKwargs) {
+    constructor(kwargs: Global.Process.ProcessDataKwargs) {
         try {
             super(kwargs);
             
@@ -211,22 +211,22 @@ class ProcessPackage extends ProcessData {
 }
 
 class ProcessMetadata {
-    static CONFIG: Node.Process.ProcessConfig;
+    static CONFIG: Global.Process.ProcessConfig;
     static ENV: ProcessEnv = new ProcessEnv();
     static PACKAGE: ProcessPackage = new ProcessPackage();
     static CWD: string = CWD.replace('file///', '').replaceAll('\\', '/');
 }
 
-class Process extends ProcessObject<Node.Process.ProcessConfig> {
+class Process extends ProcessObject<Global.Process.ProcessConfig> {
     
     static readonly Error = ProcessError;
 
-    declare static readonly kwargs: Node.Process.ProcessConfig;
-    declare readonly kwargs: Node.Process.ProcessConfig;
+    declare static readonly kwargs: Global.Process.ProcessConfig;
+    declare readonly kwargs: Global.Process.ProcessConfig;
 
     native!: typeof process;
 
-    constructor(kwargs?: Node.Process.ProcessConfig) {
+    constructor(kwargs?: Global.Process.ProcessConfig) {
         try {
             super(kwargs);
             
@@ -241,10 +241,10 @@ class Process extends ProcessObject<Node.Process.ProcessConfig> {
 
     get metadata(): ProcessMetadata { return ProcessMetadata; }
 
-    get CONFIG(): Node.Process.ProcessConfig { return ProcessMetadata.CONFIG; }
+    get CONFIG(): Global.Process.ProcessConfig { return ProcessMetadata.CONFIG; }
 
-    get ENV(): Node.Objects.Dict { return ProcessMetadata.ENV; }
-    get PACKAGE(): Node.Objects.Dict { return ProcessMetadata.PACKAGE; }
+    get ENV(): Global.Dict { return ProcessMetadata.ENV; }
+    get PACKAGE(): Global.Dict { return ProcessMetadata.PACKAGE; }
     get CWD(): string { return ProcessMetadata.CWD; }
 
     get pid(): number { return this.native.pid; }
