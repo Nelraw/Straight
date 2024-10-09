@@ -85,6 +85,8 @@ class ProcessObject {
     constructor(kwargs: { [key: string]: any } = {}) {
         try {
             for (const key in kwargs) {
+                if ((this as any)[key]) continue;
+
                 const value = kwargs[key];
                 const enumerable = false;
 

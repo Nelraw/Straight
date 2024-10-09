@@ -10,10 +10,14 @@ namespace Global.Maths {
 
     type Positive<T extends number> = `${T}` extends `-${string}` ? never : T;
     type Negative<T extends number> = `${T}` extends `-${string}` ? T : never;
+    
+    type Range<A extends number[] = []> = A['length'] extends 999
+        ? A[number]
+        : Range<[...A, A['length']]>;
 
-    // type Add<A extends number, B extends number = 1> = [ ...Array<A>, ...Array<B> ]['length'];
+    type Int<V extends number = 1> = Range extends infer INT ? Extract<INT, V> : never;
 
-    // type Int<V extends number = 1> = Range extends infer INT ? Extract<INT, V> : never; 
+    type Add<S extends number = 0, E extends number = 1> = Global.Iterables.Concat<Tuple<S>, Tuple<E>>['length'];
 
     // type Range<A extends number[] = []> = A['length'] extends 999
     //     ? A[number]

@@ -27,6 +27,9 @@ declare namespace Global {
     //     K extends keyof T ?
     //     Required<Pick<T, K>> & Partial<Omit<T, K>> : never;
 
+    type Tuple<L extends number = 1, T extends any = any, A extends number[] = []> = A['length'] extends L
+        ? A : Tuple<L, T, [...A, T ]>;
+
     type UnionToIntersection<U> = 
     (U extends any ? (arg: U) => void : never) extends (arg: infer I) => void
         ? I
