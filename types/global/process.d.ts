@@ -1,6 +1,5 @@
 
 declare namespace Global.Process {
-    type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
     type ProcessOptionsConfig = {
         debug?: boolean;

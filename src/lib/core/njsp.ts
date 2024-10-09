@@ -12,5 +12,5 @@ const { CONFIG, CWD, ENV, PACKAGE } = njsp;
 export {
     njsp as default, 
     
-    CONFIG, CWD, ENV, PACKAGE
+    CONFIG as NPJS_CONFIG, CWD, ENV, PACKAGE
 }

@@ -13,10 +13,11 @@ const CWD = process.cwd();
 
 /// -------------------------------- ///
 
+type ErrorKwargs = Global.Error.ErrorKwargs;
+
 class BaseError extends Error {
 
-    static readonly kwargs: Global.Error.ErrorKwargs;
-    readonly kwargs!: Global.Error.ErrorKwargs;
+    readonly kwargs!: ErrorKwargs;
 
     constructor(message: string) {
         super(message);
@@ -24,25 +25,26 @@ class BaseError extends Error {
 }
 
 class ProcessError extends BaseError {
-    
-    declare static readonly kwargs: Global.Error.ErrorKwargs;
-    declare readonly kwargs: Global.Error.ErrorKwargs;
 
+    // declare readonly kwargs: Global.Kwargs<this>;
+    
     declare name: string;
 
     code: number;
     reason: string;
     details: string;
 
-    source?: Global.Error.ErrorKwargs['source'];
+    source?: Global.Kwargs<this>['source'];
 
-    constructor(kwargs: Global.Error.ErrorKwargs) {
+    constructor(kwargs: string | Global.Error.ErrorKwargs) {
         try {
-            const message = typeof kwargs !== 'string' 
+            let message: string = typeof kwargs !== 'string' 
                 ? kwargs.message
                 : kwargs;
 
-            // kwargs = kwargs as Global.Error.ErrorKwargs;
+            if (typeof kwargs === 'string') {
+                kwargs = { message: kwargs };
+            }
 
             super(message);
 
@@ -55,20 +57,21 @@ class ProcessError extends BaseError {
             this.reason = reason ?? `unknown`;
             this.details = details ?? ``;
 
+            Object.defineProperty(this, 'kwargs', {
+                value: kwargs ?? {}, enumerable: false
+            });
+
         } catch(err) { throw err; }
     }
 
     get maker() { return makerOf(this); }
 }
 
-class ProcessObject<KW extends Global.Dict = Global.Dict> {
-    
-    static readonly Error = ProcessError;
+class ProcessObject {
 
-    static readonly kwargs: Global.Dict;
-    readonly kwargs!: KW;
+    readonly kwargs!: Global.Kwargs<this>;
 
-    constructor(kwargs?: KW) {
+    constructor(kwargs?: Global.Dict) {
         try {
             Object.defineProperty(this, 'kwargs', {
                 value: kwargs ?? {}, enumerable: false
@@ -78,36 +81,18 @@ class ProcessObject<KW extends Global.Dict = Global.Dict> {
     }
 
     get maker() { return makerOf(this); }
-
-    protected get Error() { return makerOf(this).Error; }
-    
-    error(args?: Global.Error.ErrorArgs) {
-        try {
-            const error = this.Error;
-
-            return args ? new error(args) : error;
-
-        } catch(err) { throw err; }
-    }
 }
 
 /// -------------------------------- ///
 
 class ProcessDataError extends ProcessError {
 
-    declare static readonly kwargs: Global.Error.ErrorKwargs;
-
-    constructor(kwargs: Global.Error.ErrorKwargs) {
+    constructor(kwargs: ErrorKwargs) {
         super(kwargs);
     }
 }
 
-class ProcessData extends ProcessObject<Global.Process.ProcessDataKwargs> {
-
-    static readonly Error = ProcessDataError;
-
-    declare static readonly kwargs: Global.Process.ProcessDataKwargs;
-    declare readonly kwargs: Global.Process.ProcessDataKwargs;
+class ProcessData extends ProcessObject {
 
     data: Global.Process.ProcessDataProperties = {};
 
@@ -118,7 +103,8 @@ class ProcessData extends ProcessObject<Global.Process.ProcessDataKwargs> {
             kwargs.auto ??= true;
             kwargs.read = kwargs.read.bind(this);
 
-            const { kwargs: { auto, read }, data } = this;
+            const { data } = this;
+            const { auto, read } = kwargs;
             const update = () => Object.assign(data, read());
 
             if (auto === true) update();
@@ -153,8 +139,6 @@ class ProcessEnvError extends ProcessDataError {
 
 class ProcessEnv extends ProcessData {
 
-    static readonly Error = ProcessEnvError;
-
     constructor(auto: boolean = true) {
         try {
             const read = () => {
@@ -188,8 +172,6 @@ class ProcessPackageError extends ProcessDataError {
 
 class ProcessPackage extends ProcessData {
 
-    static readonly Error = ProcessPackageError;
-
     constructor(auto: boolean = true) {
         try {
             const read = () => {
@@ -217,13 +199,8 @@ class ProcessMetadata {
     static CWD: string = CWD.replace('file///', '').replaceAll('\\', '/');
 }
 
-class Process extends ProcessObject<Global.Process.ProcessConfig> {
+class Process extends ProcessObject {
     
-    static readonly Error = ProcessError;
-
-    declare static readonly kwargs: Global.Process.ProcessConfig;
-    declare readonly kwargs: Global.Process.ProcessConfig;
-
     native!: typeof process;
 
     constructor(kwargs?: Global.Process.ProcessConfig) {

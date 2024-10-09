@@ -1,6 +1,6 @@
 
 declare namespace Global.Error {
-    type ErrorKwargs = {
+    type ErrorKwargs<D extends Dict = Dict> = Dict & {
         message: string;
 
         name?: string; code?: number;

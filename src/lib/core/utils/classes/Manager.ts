@@ -1,5 +1,4 @@
 
-import fs from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
 
 /// -------------------------------- ///
@@ -10,138 +9,122 @@ import { ProcessObject, ProcessError } from '../../Process.js';
 
 /// -------------------------------- ///
 
-type ManagerErrorKwargs = ProcessError['kwargs'] & {
-    manager: Manager;
-}
-
-type ManagerItemErrorKwargs = ManagerErrorKwargs & {
-    item: ManagerItem;
-}
+type ManagerErrorKwargs<M extends Manager> = Global.Error.ErrorKwargs<{
+    manager: M;
+}>;
 
 /// -------------------------------- ///
 
-type ManagerItemPrimary = Global.Dict;
+
+
+/// -------------------------------- ///
+
+class ManagerError<M extends Manager> extends ProcessError {
+
+    /// -------------------------------- ///
+
+    // declare readonly kwargs: ManagerErrorKwargs<I, T>;
+
+    constructor(kwargs: ManagerErrorKwargs<M>) {
+        try {
+            super(kwargs);
+
+        } catch(err) { throw err; }
+    }
+
+    /// -------------------------------- ///
+
+    get manager() { return this.kwargs.manager; }
+
+}
+
+class ManagerItemError<M extends Manager> extends ManagerError<M> {
+
+    constructor(kwargs: ManagerErrorKwargs<M>) {
+        try {
+            super(kwargs);
+
+        } catch(err) { throw err; }
+    }
+}
+
+class DuplicateItemError<M extends Manager> extends ManagerItemError<M> {
+
+    constructor(kwargs: ManagerErrorKwargs<M>) {
+        try {
+            super(kwargs);
+
+        } catch(err) { throw err; }
+    }
+}
 
 type ManagerItemKwargs = {
     manager: Manager;
-    primary: ManagerItemPrimary;
 }
 
-type ManagerItemData = {
-    // type: ManagerItem extends infer I ? I : never;
-    // primary: ManagerItemPrimary;
+class ManagerItem extends ProcessObject {
+
+    manager!: Manager;
+    // manager!: InstanceType<typeof this['kwargs']['manager']>;
+    
+    constructor(kwargs: ManagerItemKwargs) {
+        try {
+            super(kwargs);
+
+            this.manager = this.kwargs.manager;
+
+        } catch(err) { throw err; }
+    }
+
+    /// -------------------------------- ///
+
+    // get primary() { return this.kwargs.primary; }
 }
 
-type ManagerItemAdd<M extends Manager> = [
-    Global.Process.UUID,
-    M['model']['type'] extends infer I ? I : never
-];
+// type ManagerItemPrimary<M extends Manager> = M['primary']; 
+// type ManagerItemPrimaryKey<M extends Manager> = M['primary']['key']; 
+// type ManagerItemPrimaryValue<M extends Manager> = M['primary']['value']; 
+
+// type ManagerItemAdd<M extends Manager> = [
+//     // ManagerItemPrimaryValue<M>,
+//     M['primary']['value'],
+//     InstanceType<M['model']> & Required<M['primary']>
+// ]
+
+
+type ManagerItemsMapsKwargs<M extends Manager> = {
+    manager: M;
+}
+
+class ManagerItemsMap<M extends Manager> extends Map<M['primary']['value'], M['model']> {
+
+    manager: M;
+
+    constructor(kwargs: ManagerItemsMapsKwargs<M>) {
+        const { manager } = kwargs;
+
+        super([]);
+
+        this.manager = manager;
+    }
+}
+
 
 type ManagerOptions = {
     
 }
 
 type ManagerKwargs = {
-    item: typeof ManagerItem;
+    model: typeof ManagerItem;
+    primary: { key: string; value: any; };
+
     options?: ManagerOptions;
 }
 
-/// -------------------------------- ///
-
-class ManagerError extends ProcessError {
-
-    declare static readonly kwargs: ManagerErrorKwargs;
-    declare readonly kwargs: ManagerErrorKwargs;
-
-    constructor(kwargs: ManagerErrorKwargs) {
-        try {
-            super(kwargs);
-
-        } catch(err) { throw err; }
-    }
-
-    get manager() { return this.kwargs.manager; }
-
-}
-
-class ManagerItemError extends ManagerError {
-
-    /// -------------------------------- ///
-
-    declare static readonly kwargs: ManagerErrorKwargs;
-    declare readonly kwargs: ManagerErrorKwargs;
-
-    /// -------------------------------- ///
-
-    constructor(kwargs: ManagerErrorKwargs) {
-        try {
-            super(kwargs);
-
-        } catch(err) { throw err; }
-    }
-
-    /// -------------------------------- ///
-}
-
-class DuplicateItemError extends ManagerItemError {
-
-    /// -------------------------------- ///
-
-    constructor(kwargs: ManagerItemError['kwargs']) {
-        try {
-            super(kwargs);
-
-        } catch(err) { throw err; }
-    }
-
-    /// -------------------------------- ///
-}
-
-class ManagerItem extends ProcessObject<ManagerItemKwargs> {
+class Manager extends ProcessObject {
     
-    static readonly Error = ManagerItemError;
-
-    declare static readonly kwargs: ManagerItemKwargs;
-    declare readonly kwargs: ManagerItemKwargs;
-    
-    static get primary() { return this.kwargs.primary; }
-
-    constructor(kwargs: ManagerItemKwargs) {
-        try {
-            super(kwargs);
-
-        } catch(err) { throw err; }
-    }
-
-    get manager() { return this.kwargs.manager; }
-    get primary() { return this.kwargs.primary; }
-}
-
-type ManagerItemsMapsKwargs<M extends Manager> = {
-    manager: M;
-    items?: ManagerItemAdd<M>[]
-}
-
-class ManagerItemsMap<M extends Manager> extends Map<Global.Process.UUID, M['model']['type']> {
-
-    manager: M;
-
-    constructor(kwargs: ManagerItemsMapsKwargs<M>) {
-        const { manager, items } = kwargs;
-        super(items ?? []);
-
-        this.manager = manager;
-    }
-}
-
-class Manager extends ProcessObject<ManagerKwargs> {
-    
-    static readonly Error = ManagerError;
-
-    declare static readonly kwargs: ManagerKwargs;
-    declare readonly kwargs: ManagerKwargs;
-
-    static readonly item = ManagerItem;
+    readonly primary: this['kwargs']['primary'];
+    readonly model: this['kwargs']['model'];
 
     protected readonly items: ManagerItemsMap<this>;
 
@@ -149,21 +132,17 @@ class Manager extends ProcessObject<ManagerKwargs> {
         try {
             super(kwargs);
 
+            this.primary = kwargs.primary;
+            this.model = kwargs.model;
+
             this.items = new ManagerItemsMap({ manager: this });
 
         } catch(err) { throw err; }
     }
 
+    /// -------------------------------- ///
+
     get options() { return this.kwargs.options; }
-
-    get model() {
-        const { item } = this.kwargs;
-
-        const type = makerOf(item);
-        const { primary } = item;
-
-        return { type, primary };
-    }
 
     method(...args: any[]) {
         try {

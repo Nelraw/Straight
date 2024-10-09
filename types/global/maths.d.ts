@@ -11,6 +11,8 @@ namespace Global.Maths {
     type Positive<T extends number> = `${T}` extends `-${string}` ? never : T;
     type Negative<T extends number> = `${T}` extends `-${string}` ? T : never;
 
+    // type Add<A extends number, B extends number = 1> = [ ...Array<A>, ...Array<B> ]['length'];
+
     // type Int<V extends number = 1> = Range extends infer INT ? Extract<INT, V> : never; 
 
     // type Range<A extends number[] = []> = A['length'] extends 999
