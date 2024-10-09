@@ -1,5 +1,5 @@
 
-declare namespace Iterables {
+declare namespace Global.Iterables {
 
     type Iterable<T> = T[Symbol.iterator] extends Symbol.iterator ? T : never;
     type Iterator<T> = T extends Iterable<T> ? T[Symbol.iterator] : never;

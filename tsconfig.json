@@ -13,19 +13,13 @@
         "moduleResolution": "node16",
         "jsx": "react",
         "types": [
-            "node",
-            "jest"
+            "node"
         ],
         "typeRoots": [
             "./node_modules/@types",
             "./types"
         ],
-        "baseUrl": ".",
-        "paths": {
-            "server": [
-                ""
-            ]
-        }
+        "baseUrl": "."
     },
     "include": [
         "src/**/*",

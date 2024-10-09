@@ -1,5 +1,5 @@
 
-declare namespace Node.Error {
+declare namespace Global.Error {
     type ErrorKwargs = {
         message: string;
 

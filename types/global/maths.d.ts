@@ -1,5 +1,5 @@
 
-namespace Maths {
+namespace Global.Maths {
 
     type Sign = `+` | `-` ;
     type Signs = { plus: `+`;  minus: `-` };
