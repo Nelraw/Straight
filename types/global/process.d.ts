@@ -1,5 +1,5 @@
 
-declare namespace Process {
+declare namespace Global.Process {
     type UUID = `${string}-${string}-${string}-${string}-${string}`;
 
     type ProcessOptionsConfig = {

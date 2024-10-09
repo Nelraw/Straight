@@ -1,5 +1,5 @@
 
-export { ProcessObject, ProcessError } from './core/Process.js';
+export { ProcessObject, ProcessError } from './Process.js';
 
 export { Print } from './utils/functions/print.js';
 

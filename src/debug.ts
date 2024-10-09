@@ -2,7 +2,7 @@
 import { ProcessObject } from './lib/core/Process.js';
 import { Print } from './lib/utils/functions/print.js';
 
-import njsp from './lib/njsp.js';
+import njsp from './lib/core/njsp.js';
 
 Print.show('njsp', njsp)
     (njsp.pid)

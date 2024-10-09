@@ -1,6 +1,6 @@
 
-import { Process } from './core/Process.js';
-import * as config from '../config/njsp.config.js';
+import { Process } from './Process.js';
+import * as config from '../../config/njsp.config.js';
 
 /// -------------------------------- ///
 
