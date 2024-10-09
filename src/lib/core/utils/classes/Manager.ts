@@ -9,7 +9,7 @@ import { ProcessObject, ProcessError, ErrorOptions, ErrorArgs } from '../../Proc
 
 /// -------------------------------- ///
 
-class ManagerError<M extends Manager> extends ProcessError {
+class ManagerError<M extends Manager | typeof Manager> extends ProcessError {
 
     declare manager: M;
 
@@ -56,59 +56,14 @@ class ManagerItem extends ProcessObject {
     }
 }
 
-type ManagerItemModel<M extends Manager, N extends string> = M['_models'][N];
+type ManagerItemModel<M extends Manager, N extends string> = M['models'][N];
 
-type ManagerItemOptions<M extends Manager, N extends string> = ConstructorParameters<M['_models'][N]>[1];
+type ManagerItemOptions<M extends Manager, N extends string> = ConstructorParameters<M['models'][N]>[1];
 
 type ManagerItemCreation<M extends Manager, N extends string> = {
     model: ManagerItemModel<M, N>;
     args: ManagerItemOptions<M, N>;
 }
-
-// type ManagerItemModel<M> = M extends typeof ManagerItem ? M : never; 
-
-// class ManagerModelHandler<M extends Manager> extends ProcessObject {
-    
-//     declare manager: M;
-//     declare protected models: M;
-
-//     constructor(options: { manager: M }) {
-//         const { manager } = options;
-
-//         super();
-
-//         this.manager = manager;
-//     }
-
-//     /// -------------------------------- ///
-
-//     get(key: M['key']) {
-//         try {
-//             return this.find(item => item.key === key);
-
-//         } catch(err) { throw err; }
-//     }
-
-//     add(item: ManagerItemModel<typeof ManagerItem>) {
-//         try {
-//             if (this.includes(item)) throw new DuplicateItemError({ manager: this.manager });
-
-//             this.push(item);
-
-//         } catch(err) { throw err; }
-//     }
-
-//     remove(item: ManagerItemModel<typeof ManagerItem>) {
-//         try {
-//             const index = this.indexOf(item);
-
-//             if (index === -1) throw new ManagerItemError({ manager: this.manager });
-
-//             this.splice(index, 1);
-
-//         } catch(err) { throw err; }
-//     }
-// }
 
 class ManagerMap<M extends Manager> extends Map<M['data']['key'], Global.Iterables.Values<M['data']['models']>> {
 
@@ -123,7 +78,7 @@ class ManagerMap<M extends Manager> extends Map<M['data']['key'], Global.Iterabl
     }
 }
 
-class ManagerModelHandlerError<M extends Manager> extends ManagerError<M> {
+class ManagerModelsHandlerError<M extends typeof Manager> extends ManagerError<M> {
     
     constructor(options: ErrorArgs<{ manager: M }>) {
         try {
@@ -133,71 +88,65 @@ class ManagerModelHandlerError<M extends Manager> extends ManagerError<M> {
     }
 }
 
-class ManagerModelHandler<M extends Manager> extends Array<typeof ManagerItem> {
+class ManagerModelsHandler<M extends typeof Manager> extends ProcessObject {
 
     declare manager: M;
-    declare makers: { [key: string]: typeof ManagerItem };
+    protected models: { [key: string]: typeof ManagerItem } = {};
 
-    constructor(manager: M, ...models: Array<typeof ManagerItem>) {
+    constructor(manager: M) {
         try {
-            super(...models);
+            super({ manager });
 
-            this.makers = {};
-
-            const { primary: { key, type } } = manager.data;
-
-            for (const model of models) {
-                this.makers[model.name] = model;
-
-
-                // let { prototype, name } = model;
-
-                // const prop = Object.getOwnPropertyDescriptor(prototype, key);
-                // const value = prop?.value ?? prop?.get?.();
-
-                // if (!value) {
-                //     const message = `${name} is missing primary key "${key}".`;
-
-                //     throw new ManagerModelHandlerError({ manager, message });
-                // } else {
-                //     const types = [ makerOf(type), makerOf(value) ];
-                                   
-                //     if (types[0] !== types[1]) {
-                //         const txt = `${types[1]} instead of ${types[0]} (key "${key}").`;
-                //         const message = `${name} has invalid primary value type: ${txt}`;
-
-                //         throw new ManagerModelHandlerError({ manager, message });
-                //     }
-                // }
-            }
+            const { data : { models } } = manager;
+            this.set(models);
 
             Object.defineProperty(this, 'manager', { value: manager });
 
-            
         } catch(err) { throw err; }
     }
 
     get(...names: string[]): Array<typeof ManagerItem> {
+        const { models } = this;
+
         if (names.length === 0) {
             const results: Array<typeof ManagerItem> = [];
 
-            for (const model of this) {
-                results.push(model)
-            }
+            for (const name in models) results.push(models[name])
 
             return results;
         }
         
-        const callback = (model: any) => names.find(n => n === model.name);
         const results: Array<typeof ManagerItem> = [];
+        const callback = (name: string) => names.find(n => n === name);
 
-        for (const model of this) {
-            const name = callback(model);
+        for (const [ name, model ]of Object.entries(models)) {
+            const match = callback(name);
 
-            if (name) results.push(model);
+            if (match) results.push(model);
         }
 
         return results;
+    }
+
+    set(adding: typeof ManagerItem | Array<typeof ManagerItem>) {
+        const { manager, models } = this;
+
+        if (Array.isArray(adding)) {
+            for (const model of adding) this.set(model);
+        }
+
+        const model = adding as typeof ManagerItem;
+        const name = model.name;
+
+        if (models[model.name]) {
+            const message = `Model "${name}" already exists.`;
+
+            throw new ManagerModelsHandlerError({ manager, message });
+        } else {
+            (models as any)[name] = model;
+
+            (this as any)[name] = model;
+        }
     }
 }
 
@@ -214,15 +163,41 @@ class Manager extends ProcessObject {
 
     static readonly data: ManagerData;
 
+    protected static _models: any;
+
+    static get models() {
+        try {
+            if (!this._models) this._models = new ManagerModelsHandler(this);
+
+            const models = this._models as any;
+
+            for (const model of models.get()) {
+                const { name } = model;
+
+                if (!models[name]) models[name] = model;
+            }
+
+            return models;
+
+        } catch(err) { throw err; }
+    }
+
+    static set models(models: typeof ManagerItem | Array<typeof ManagerItem>) {
+        try {
+            if (!this._models) this._models = new ManagerModelsHandler(this);
+
+            this._models.set(models);
+
+        } catch(err) { throw err; }
+    }
+
     protected readonly items: ManagerMap<this>;
-    declare readonly models: ManagerModelHandler<this>;
-    declare readonly _models: { [key: string]: typeof ManagerItem };
 
     constructor(options?: ManagerOptions) {
         try {
             super(options);
 
-            const { maker } = this;
+            this.items = new ManagerMap({ manager: this });
 
             if (!maker.data && options) {
                 if (!options.data) {
@@ -236,15 +211,6 @@ class Manager extends ProcessObject {
                 }
             }
 
-            this.items = new ManagerMap({ manager: this });
-            this.models = new ManagerModelHandler(this, ...maker.data.models);
-
-            this._models = {};
-
-            for (const model of this.models) {
-                this._models[model.name] = model;
-            }
-
         } catch(err) { throw err; }
     }
 
@@ -253,15 +219,15 @@ class Manager extends ProcessObject {
     get data() { return this.maker.data; }
     get primary() { return this.maker.data.primary; }
 
+    get models(): any { return this.maker.models; }
+    set models(models: typeof ManagerItem | Array<typeof ManagerItem>) {
+        try { this.maker.models.set(models); }
+        catch(err) { throw err; }
+    }
+
     async create<N extends string>(modelName: N, options: ManagerItemOptions<this, N>) {
         try {
-            console.log(modelName);
-            console.log(this._models);
-            console.log();
-
             const [ model ] = this.models.get(modelName);
-
-            console.log(model)
 
             return new model(this, options);
 
