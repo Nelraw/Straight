@@ -199,6 +199,10 @@ class Manager extends ProcessObject {
 
             this.items = new ManagerMap({ manager: this });
 
+            const { maker } = this;
+
+            const key = maker.data;
+
             if (!maker.data && options) {
                 if (!options.data) {
                     const err = { manager: this, message: 'No data provided.' };
