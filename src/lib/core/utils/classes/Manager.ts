@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { makerOf } from '../functions/meta.js';
 
-import { ProcessObject, ProcessError } from '../../core/Process.js';
+import { ProcessObject, ProcessError } from '../../Process.js';
 
 /// -------------------------------- ///
 
@@ -20,7 +20,7 @@ type ManagerItemErrorKwargs = ManagerErrorKwargs & {
 
 /// -------------------------------- ///
 
-type ManagerItemPrimary = Node.Objects.Dict;
+type ManagerItemPrimary = Global.Dict;
 
 type ManagerItemKwargs = {
     manager: Manager;
@@ -33,7 +33,7 @@ type ManagerItemData = {
 }
 
 type ManagerItemAdd<M extends Manager> = [
-    Node.Process.UUID,
+    Global.Process.UUID,
     M['model']['type'] extends infer I ? I : never
 ];
 
@@ -122,7 +122,7 @@ type ManagerItemsMapsKwargs<M extends Manager> = {
     items?: ManagerItemAdd<M>[]
 }
 
-class ManagerItemsMap<M extends Manager> extends Map<Node.Process.UUID, M['model']['type']> {
+class ManagerItemsMap<M extends Manager> extends Map<Global.Process.UUID, M['model']['type']> {
 
     manager: M;
 
