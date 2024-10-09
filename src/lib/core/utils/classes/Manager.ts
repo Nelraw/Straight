@@ -45,11 +45,11 @@ class ManagerItem extends ProcessObject {
 
     declare manager: Manager;
     
-    constructor(manager: Manager, options: { [key: string]: any }) {
+    constructor(manager: Manager, kwargs: { [key: string]: any }) {
         try {
             super({
                 ...{ manager },
-                ...options,
+                ...kwargs,
             });
 
         } catch(err) { throw err; }
@@ -65,7 +65,17 @@ type ManagerItemCreation<M extends Manager, N extends string> = {
     args: ManagerItemOptions<M, N>;
 }
 
-class ManagerMap<M extends Manager> extends Map<M['data']['key'], Global.Iterables.Values<M['data']['models']>> {
+class ManagerItemsMapError<M extends Manager> extends ManagerError<M> {
+
+    constructor(options: ErrorArgs<{ manager: M }>) {
+        try {
+            super(options);
+
+        } catch(err) { throw err; }
+    }
+}
+
+class ManagerItemsMap<M extends Manager> extends Map<M['data']['key'], Global.Iterables.Values<M['data']['models']>> {
 
     declare manager: M;
 
@@ -129,29 +139,30 @@ class ManagerModelsHandler<M extends typeof Manager> extends ProcessObject {
     }
 
     set(adding: typeof ManagerItem | Array<typeof ManagerItem>) {
-        const { manager, models } = this;
+        try {
+            const { manager, models } = this;
 
-        if (Array.isArray(adding)) {
-            for (const model of adding) this.set(model);
-        }
+            if (Array.isArray(adding)) {
+                for (const model of adding) this.set(model);
+            }
+    
+            const model = adding as typeof ManagerItem;
+            const name = model.name;
+    
+            if (models[model.name]) {
+                const message = `Model "${name}" already exists.`;
 
-        const model = adding as typeof ManagerItem;
-        const name = model.name;
+                throw new ManagerModelsHandlerError({ manager, message });
+            } else {
+                for (const obj of [ models, this ]) (obj as any)[name] = model;
+            }
 
-        if (models[model.name]) {
-            const message = `Model "${name}" already exists.`;
-
-            throw new ManagerModelsHandlerError({ manager, message });
-        } else {
-            (models as any)[name] = model;
-
-            (this as any)[name] = model;
-        }
+        } catch(err) { throw err; }
     }
 }
 
 type ManagerData = {
-    primary: { key: string, type: string | number };
+    primary: { key: string; type: string | number };
     models: Array<typeof ManagerItem>;
 }
 
@@ -191,28 +202,26 @@ class Manager extends ProcessObject {
         } catch(err) { throw err; }
     }
 
-    protected readonly items: ManagerMap<this>;
+    protected readonly items: ManagerItemsMap<this>;
 
     constructor(options?: ManagerOptions) {
         try {
             super(options);
 
-            this.items = new ManagerMap({ manager: this });
+            this.items = new ManagerItemsMap({ manager: this });
 
-            const { maker } = this;
+            const manager = this;
 
-            const key = maker.data;
+            const { maker, primary } = this;
+            const { key, type } = primary;
 
-            if (!maker.data && options) {
-                if (!options.data) {
-                    const err = { manager: this, message: 'No data provided.' };
+            const message = `message: Missing primary key or type.`;
 
-                    throw new ManagerError(err);
-                } else {
-                    const { data: { primary, models } } = options;
+            if (!key || !type) throw new ManagerError({ manager, message });
+            else maker.data ??= (options as ManagerOptions)?.data;
 
-                    maker.data ??= { primary, models };
-                }
+            if (!this.primary.key || !this.primary.type) {
+                throw new ManagerError({ manager, message });
             }
 
         } catch(err) { throw err; }

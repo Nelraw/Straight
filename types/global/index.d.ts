@@ -8,9 +8,6 @@ declare namespace Global {
                 : never
             : never;
     
-    // type SizedDict<O extends Dict, VT = any, S extends number = 1> = UnionToTuple<keyof O>['length'] extends S
-    //     ? O<VT> : never;
-
     type Primitive<R extends boolean = false> = R extends false
         ? boolean | number | string | bigint | null | undefined
         : boolean | number | string | bigint | symbol | null | undefined;
@@ -22,10 +19,6 @@ declare namespace Global {
     type Merge<T, U> = Omit<T, keyof U> & U;
 
     type Select<T, K extends keyof T = keyof T> = K extends keyof T ? Pick<T, K> : never;
-
-    // type Select<T, K extends keyof T = keyof T> = 
-    //     K extends keyof T ?
-    //     Required<Pick<T, K>> & Partial<Omit<T, K>> : never;
 
     type Tuple<L extends number = 1, T extends any = any, A extends number[] = []> = A['length'] extends L
         ? A : Tuple<L, T, [...A, T ]>;
