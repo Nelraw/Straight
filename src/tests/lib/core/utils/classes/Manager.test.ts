@@ -1,9 +1,9 @@
 
-import { njsp, ProcessObject, ProcessError } from '../../../../lib/core/njsp.js';
+import { njsp, ProcessObject, ProcessError } from '../../../../../lib/core/njsp.js';
 
-import { Print } from '../../../../lib/core/utils/functions/print.js';
+import { Print } from '../../../../../lib/core/utils/functions/print.js';
 
-import { Manager, ManagerError, ManagerItem, ManagerItemError } from '../../../../lib/core/utils/classes/Manager.js';
+import { Manager, ManagerError, ManagerItem, ManagerItemError } from '../../../../../lib/core/utils/classes/Manager.js';
 
 type MoneyFlowOptions = { label: string, amount: number };
 
@@ -122,11 +122,11 @@ async function test() {
             .show('wallet: ' + wallet.primary.key, wallet).br()
             .show('incomming', incomming).br()
             .show('outcomming', outcomming).br()
-            .show('waste', waste).br(12);
+            .show('waste', waste).br(2);
 
-        const wasted = await wallet.create<'Waste'>('Waste', { label: 'Wasted', amount: 100 });
+        const wasted = await wallet.create<'zob'>('zob', { label: 'Wasted', amount: 100 });
 
-        Print(wasted).br(4);
+        Print(wasted).br();
 
     } catch(err) { throw err; }
 }

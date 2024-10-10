@@ -9,7 +9,9 @@ import { ProcessObject, ProcessError, ErrorData } from '../../Process.js';
 
 /// -------------------------------- ///
 
-type ManagerErrorData<M extends Manager | typeof Manager> = ErrorData & { manager: M };
+type ManagerErrorData<M extends Manager | typeof Manager> = ErrorData & {
+    manager: M;
+}
 
 class ManagerError<M extends Manager | typeof Manager> extends ProcessError {
 
@@ -32,9 +34,21 @@ class ManagerError<M extends Manager | typeof Manager> extends ProcessError {
 
 }
 
+type ManagerItemErrorData<M extends Manager> = ErrorData & {
+    manager: M, item?: ManagerItem;
+}
+
 class ManagerItemError<M extends Manager> extends ManagerError<M> {
 
-    constructor(data: ManagerErrorData<M>) {
+    /// -------------------------------- ///
+
+    declare readonly $data: ManagerItemErrorData<M>;
+
+    /// -------------------------------- ///
+
+    declare item?: ManagerItem;
+
+    constructor(data: ManagerItemErrorData<M>) {
         try {
             super(data);
 
@@ -44,7 +58,7 @@ class ManagerItemError<M extends Manager> extends ManagerError<M> {
 
 class DuplicateItemError<M extends Manager> extends ManagerItemError<M> {
 
-    constructor(data: ManagerErrorData<M>) {
+    constructor(data: ManagerItemErrorData<M>) {
         try {
             super(data);
 
@@ -64,13 +78,31 @@ class ManagerItem extends ProcessObject {
     }
 }
 
+// type ManagerModelNames<M extends Manager> = Exclude<keyof M['models'], 'get' | 'set' | keyof ProcessObject>;
+
+// type ManagerItemModels<M extends Manager> = M['models'] extends infer Models
+//     ? Models extends { [K in ManagerModelNames<M>]: typeof ManagerItem } ? Models : never
+//     : never;
+
+// type ManagerItemModel<M extends Manager, N extends ManagerModelNames<M>> = M['models'][N] extends infer Model
+//     ? Model extends typeof ManagerItem ? Model : never
+//     : never;
+
 type ManagerItemModel<M extends Manager, N extends string> = M['models'][N];
 
-type ManagerItemOptions<M extends Manager, N extends string> = ConstructorParameters<M['models'][N]>[1];
+// type ManagerItemModel<M extends Manager, N extends keyof ManagerItemModels<M>> = ManagerItemModels<M>[N] extends infer Model
+//     ? Model extends typeof ManagerItem ? Model : never
+//     : never;
+
+// type ManagerItemModel<M extends Manager, N extends keyof ManagerItemModels<M>> = M['models'][N];
+
+type ManagerItemKwargs<M extends Manager, N extends string> = ManagerItemModel<M, N> extends infer Model
+    ? Model extends typeof ManagerItem ? ConstructorParameters<Model>[1] : never
+    : never;
 
 type ManagerItemCreation<M extends Manager, N extends string> = {
     model: ManagerItemModel<M, N>;
-    args: ManagerItemOptions<M, N>;
+    kwargs: ManagerItemKwargs<M, N>;
 }
 
 class ManagerItemsMapError<M extends Manager> extends ManagerError<M> {
@@ -109,7 +141,7 @@ class ManagerModelsHandlerError<M extends typeof Manager> extends ManagerError<M
 class ManagerModelsHandler<M extends typeof Manager> extends ProcessObject {
 
     declare manager: M;
-    protected models: { [key: string]: typeof ManagerItem };
+    protected models: Global.Dict<typeof ManagerItem>;
 
     constructor(manager: M) {
         try {
@@ -118,6 +150,7 @@ class ManagerModelsHandler<M extends typeof Manager> extends ProcessObject {
             this.models = {};
 
             const { config : { models } } = manager;
+            
             this.set(models);
 
             Object.defineProperty(this, 'manager', { value: manager });
@@ -164,7 +197,7 @@ class ManagerModelsHandler<M extends typeof Manager> extends ProcessObject {
 
                 throw new ManagerModelsHandlerError({ manager, message });
             } else {
-                for (const obj of [ models, this ]) (obj as any)[name] = model;
+                (models as any)[name] = model;
             }
 
         } catch(err) { throw err; }
@@ -217,6 +250,8 @@ class Manager extends ProcessObject {
         } catch(err) { throw err; }
     }
 
+    /// -------------------------------- ///
+
     protected readonly items: ManagerItemsMap<this>;
 
     constructor(options?: ManagerOptions) {
@@ -253,11 +288,11 @@ class Manager extends ProcessObject {
         catch(err) { throw err; }
     }
 
-    async create<N extends string>(modelName: N, options: ManagerItemOptions<this, N>) {
+    async create<N extends string>(modelName: N, kwargs: ManagerItemKwargs<this, N>) {
         try {
             const [ model ] = this.models.get(modelName);
 
-            return new model(this, options);
+            return new model(this, kwargs);
 
         } catch(err) { throw err; }
     }
