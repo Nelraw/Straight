@@ -190,16 +190,18 @@ class Manager extends ProcessObject {
         try {
             if (!this._models) this._models = new ManagerModelsHandler(this);
 
-            const models: { [key: string]: any } = {};
+            const { _models } = this;
+            const { get, set } = _models;
+            const models: Global.Dict = {};
 
-            const { get, set } = this._models;
+            const define = (k: string, v: any, e: boolean) => {
+                if (k == 'get' || k == 'set') v = v.bind(_models);
+                
+                Object.defineProperty(models, k, { value: v, enumerable: e });
+            }
 
-            Object.defineProperties(models, {
-                get: { value: get.bind(this._models), enumerable: false },
-                set: { value: set.bind(this._models), enumerable: false }
-            });
-
-            for (const model of models.get()) models[model.name] = model;
+            for (const fn of [ get, set ]) define(fn.name, fn, false);
+            for (const model of models.get()) define(model.name, model, true);
 
             return models;
 
