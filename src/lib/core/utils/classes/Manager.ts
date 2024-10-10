@@ -109,11 +109,13 @@ class ManagerModelsHandlerError<M extends typeof Manager> extends ManagerError<M
 class ManagerModelsHandler<M extends typeof Manager> extends ProcessObject {
 
     declare manager: M;
-    protected models: { [key: string]: typeof ManagerItem } = {};
+    protected models: { [key: string]: typeof ManagerItem };
 
     constructor(manager: M) {
         try {
             super({ manager });
+
+            this.models = {};
 
             const { config : { models } } = manager;
             this.set(models);
@@ -137,7 +139,7 @@ class ManagerModelsHandler<M extends typeof Manager> extends ProcessObject {
         const results: Array<typeof ManagerItem> = [];
         const callback = (name: string) => names.find(n => n === name);
 
-        for (const [ name, model ]of Object.entries(models)) {
+        for (const [ name, model ] of Object.entries(models)) {
             const match = callback(name);
 
             if (match) results.push(model);
@@ -184,17 +186,20 @@ class Manager extends ProcessObject {
 
     protected static _models: any;
 
-    static get models() {
+    static get models(): Global.Dict<typeof ManagerItem | ((...args: any[]) => any)> {
         try {
             if (!this._models) this._models = new ManagerModelsHandler(this);
 
-            const models = this._models as any;
+            const models: { [key: string]: any } = {};
 
-            for (const model of models.get()) {
-                const { name } = model;
+            const { get, set } = this._models;
 
-                if (!models[name]) models[name] = model;
-            }
+            Object.defineProperties(models, {
+                get: { value: get.bind(this._models), enumerable: false },
+                set: { value: set.bind(this._models), enumerable: false }
+            });
+
+            for (const model of models.get()) models[model.name] = model;
 
             return models;
 
