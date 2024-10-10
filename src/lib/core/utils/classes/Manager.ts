@@ -5,27 +5,38 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { makerOf } from '../functions/meta.js';
 
-import { ProcessObject, ProcessError, ErrorOptions, ErrorArgs } from '../../Process.js';
+import { ProcessObject, ProcessError, ErrorData } from '../../Process.js';
 
 /// -------------------------------- ///
 
+type ManagerErrorData<M extends Manager | typeof Manager> = ErrorData & { manager: M };
+
 class ManagerError<M extends Manager | typeof Manager> extends ProcessError {
+
+    /// -------------------------------- ///
+
+    declare readonly $data: ManagerErrorData<M>;
+
+    /// -------------------------------- ///
 
     declare manager: M;
 
-    constructor(options: ErrorArgs<{ manager: M }>) {
+    constructor(data: ManagerErrorData<M>) {
         try {
-            super(options);
+            super(data);
 
         } catch(err) { throw err; }
     }
+
+    /// -------------------------------- ///
+
 }
 
 class ManagerItemError<M extends Manager> extends ManagerError<M> {
 
-    constructor(options: ErrorArgs<{ manager: M }>) {
+    constructor(data: ManagerErrorData<M>) {
         try {
-            super(options);
+            super(data);
 
         } catch(err) { throw err; }
     }
@@ -33,9 +44,9 @@ class ManagerItemError<M extends Manager> extends ManagerError<M> {
 
 class DuplicateItemError<M extends Manager> extends ManagerItemError<M> {
 
-    constructor(options: ErrorArgs<{ manager: M }>) {
+    constructor(data: ManagerErrorData<M>) {
         try {
-            super(options);
+            super(data);
 
         } catch(err) { throw err; }
     }
@@ -45,12 +56,9 @@ class ManagerItem extends ProcessObject {
 
     declare manager: Manager;
     
-    constructor(manager: Manager, kwargs: { [key: string]: any }) {
+    constructor(manager: Manager, data: { [key: string]: any }) {
         try {
-            super({
-                ...{ manager },
-                ...kwargs,
-            });
+            super({ ...{ manager }, ...data });
 
         } catch(err) { throw err; }
     }
@@ -67,15 +75,15 @@ type ManagerItemCreation<M extends Manager, N extends string> = {
 
 class ManagerItemsMapError<M extends Manager> extends ManagerError<M> {
 
-    constructor(options: ErrorArgs<{ manager: M }>) {
+    constructor(data: ManagerErrorData<M>) {
         try {
-            super(options);
+            super(data);
 
         } catch(err) { throw err; }
     }
 }
 
-class ManagerItemsMap<M extends Manager> extends Map<M['data']['key'], Global.Iterables.Values<M['data']['models']>> {
+class ManagerItemsMap<M extends Manager> extends Map<M['config']['key'], Global.Iterables.Values<M['config']['models']>> {
 
     declare manager: M;
 
@@ -90,9 +98,9 @@ class ManagerItemsMap<M extends Manager> extends Map<M['data']['key'], Global.It
 
 class ManagerModelsHandlerError<M extends typeof Manager> extends ManagerError<M> {
     
-    constructor(options: ErrorArgs<{ manager: M }>) {
+    constructor(data: ManagerErrorData<M>) {
         try {
-            super(options);
+            super(data);
 
         } catch(err) { throw err; }
     }
@@ -107,7 +115,7 @@ class ManagerModelsHandler<M extends typeof Manager> extends ProcessObject {
         try {
             super({ manager });
 
-            const { data : { models } } = manager;
+            const { config : { models } } = manager;
             this.set(models);
 
             Object.defineProperty(this, 'manager', { value: manager });
@@ -161,18 +169,18 @@ class ManagerModelsHandler<M extends typeof Manager> extends ProcessObject {
     }
 }
 
-type ManagerData = {
+type ManagerConfig = {
     primary: { key: string; type: string | number };
     models: Array<typeof ManagerItem>;
 }
 
 type ManagerOptions = {
-    data?: ManagerData;
+    config?: ManagerConfig;
 }
 
 class Manager extends ProcessObject {
 
-    static readonly data: ManagerData;
+    static config: ManagerConfig;
 
     protected static _models: any;
 
@@ -215,10 +223,10 @@ class Manager extends ProcessObject {
             const { maker, primary } = this;
             const { key, type } = primary;
 
-            const message = `message: Missing primary key or type.`;
+            const message = `Missing primary key or type.`;
 
-            if (!key || !type) throw new ManagerError({ manager, message });
-            else maker.data ??= (options as ManagerOptions)?.data;
+            if (key && type) maker.config.primary = { key, type };
+            else maker.config ??= (options as ManagerOptions)?.config;
 
             if (!this.primary.key || !this.primary.type) {
                 throw new ManagerError({ manager, message });
@@ -229,8 +237,8 @@ class Manager extends ProcessObject {
 
     /// -------------------------------- ///
 
-    get data() { return this.maker.data; }
-    get primary() { return this.maker.data.primary; }
+    get config() { return this.maker.config; }
+    get primary() { return this.maker.config.primary; }
 
     get models(): any { return this.maker.models; }
     set models(models: typeof ManagerItem | Array<typeof ManagerItem>) {
@@ -253,5 +261,6 @@ class Manager extends ProcessObject {
 export {
     Manager, ManagerItem,
 
-    ManagerError, ManagerItemError, DuplicateItemError,
+    ManagerError, ManagerErrorData,
+    ManagerItemError, DuplicateItemError,
 }

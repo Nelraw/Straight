@@ -58,4 +58,4 @@ Print.show = (title: string, ...lines: any[]) => {
 
 /// -------------------------------- ///
 
-export { Print }
+export { Print as default, Print }

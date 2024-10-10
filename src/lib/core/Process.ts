@@ -13,10 +13,27 @@ const CWD = process.cwd();
 
 /// -------------------------------- ///
 
-type ErrorOptions<D extends Global.Dict = Global.Dict> = Global.Error.ErrorOptions<D>;
-type ErrorArgs<D extends Global.Dict | undefined = undefined> = Global.Error.ErrorArgs<D>;
+// type ErrorDataFunction<D extends Global.Dict = Global.Dict> = () => ErrorData<D>;
+
+// type ErrorDataFetcher<D extends Global.Dict | ErrorDataFunction = Global.Dict> = D extends ErrorDataFunction
+//     ? ReturnType<D>
+//     : Global.Error.ErrorData<D>;
+
+// type ErrorData<D extends Global.Dict | ErrorDataFunction = Global.Dict> = D extends ErrorDataFunction
+//     ? ErrorDataFetcher<D>
+//     : Global.Error.ErrorData<D>;
+
+// type ErrorArgs<D extends Global.Dict | undefined = undefined> = Global.Error.ErrorArgs<D>;
+
+type ErrorData = Global.Error.ErrorData;
 
 class ProcessError extends Error {
+
+    /// -------------------------------- ///
+
+    readonly $data!: ErrorData;
+
+    /// -------------------------------- ///
 
     declare name: string;
 
@@ -24,31 +41,29 @@ class ProcessError extends Error {
     declare reason: string;
     declare details: string;
 
-    source?: object;
+    declare source?: object;
 
-    constructor(options: string | ErrorOptions) {
+    constructor(data: ErrorData) {
         try {
-            let message: string = typeof options !== 'string' 
-                ? options.message
-                : options;
+            let message: string = typeof data !== 'string' 
+                ? data.message
+                : data;
 
-            if (typeof options === 'string') {
-                options = { message: options };
-            }
+            if (typeof data === 'string') data = { message: data };
 
             super(message);
 
-            const { name, code, reason, details } = options;
+            const { name, code, reason, details } = data;
 
             if (name) this.name = name;
             else makerOf(this).name;
     
-            options.code = code ?? -1;
-            options.reason = reason ?? `unknown`;
-            options.details = details ?? ``;
+            data.code = code ?? -1;
+            data.reason = reason ?? `unknown`;
+            data.details = details ?? ``;
 
-            for (const key in options) {
-                const value = options[key];
+            for (const key in data) {
+                const value = (data as any)[key];
                 const enumerable = false;
 
                 Object.defineProperty(this, key, { value, enumerable });
@@ -61,24 +76,6 @@ class ProcessError extends Error {
 
     get maker() { return makerOf(this); }
 }
-
-// type PropertyDescriptorMode = 'value' | 'get' | 'set';
-
-// type PropertyDescriptorSetting = { value: any } | { get: () => any } | { set: (value: any) => void }
-//     | { get: () => any; set: (value: any) => void }
-
-// type PropertyDescriptorValue = { [K in keyof PropertyDescriptorMode]: PropertyDescriptorSetting };
-
-// type PropertyDescriptorOptions = {
-//     enumerable?: boolean;
-//     configurable?: boolean,
-//     writable?: boolean
-// };
-
-// type PropertyDescriptor = PropertyDescriptorValue & PropertyDescriptorOptions;
-
-// type PropertiesDescription = { [key: string]: PropertyDescriptor };
-
 
 class ProcessObject {
 
@@ -106,7 +103,8 @@ class ProcessObject {
 
 class ProcessDataError extends ProcessError {
 
-    constructor(options: string | ErrorOptions) {
+    // constructor(options: ErrorData) {
+    constructor(options: ProcessError['$data']) {
         super(options);
     }
 }
@@ -255,5 +253,25 @@ export {
 
     ProcessObject, ProcessError,
 
-    ErrorOptions, ErrorArgs
+    ErrorData
 }
+
+
+
+
+// type PropertyDescriptorMode = 'value' | 'get' | 'set';
+
+// type PropertyDescriptorSetting = { value: any } | { get: () => any } | { set: (value: any) => void }
+//     | { get: () => any; set: (value: any) => void }
+
+// type PropertyDescriptorValue = { [K in keyof PropertyDescriptorMode]: PropertyDescriptorSetting };
+
+// type PropertyDescriptorOptions = {
+//     enumerable?: boolean;
+//     configurable?: boolean,
+//     writable?: boolean
+// };
+
+// type PropertyDescriptor = PropertyDescriptorValue & PropertyDescriptorOptions;
+
+// type PropertiesDescription = { [key: string]: PropertyDescriptor };
