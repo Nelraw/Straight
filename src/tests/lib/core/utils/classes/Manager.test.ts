@@ -11,13 +11,7 @@ type MoneyFlowErrorData<M extends Manager> = ManagerItemError<M> & { amount?: nu
 
 class MoneyFlowError<M extends Manager> extends ManagerItemError<M> {
 
-    /// -------------------------------- ///
-
     static manager: Manager;
-
-    /// -------------------------------- ///
-
-    declare readonly $data: MoneyFlowErrorData<M>;
 
     /// -------------------------------- ///
 
@@ -36,6 +30,8 @@ class MoneyFlow extends ManagerItem {
 
     declare label: string;
     declare amount: number;
+
+    declare kwargs: MoneyFlowKwargs;
 
     constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
         try {
@@ -86,7 +82,7 @@ class Wallet extends Manager {
     constructor() {
         try {
             const config = {
-                primary: { key: 'label', type: 'string' },
+                primary: [ 'label', 'string' ] as Manager['primary'],
                 models: [ Incoming, Outcoming, Waste ]
             };
                 
@@ -100,9 +96,12 @@ async function test() {
     try {
         const wallet = new Wallet();
 
-        const wasted = await wallet.create('zob', { amount: 100 });
+        const model = 'Outcoming';
+        const kwargs = { amount: 100 };
 
-        Print(wasted).br();
+        const outcoming = await wallet.create({ model, kwargs });
+
+        Print(outcoming).br();
 
     } catch(err) { throw err; }
 }
