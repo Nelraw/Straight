@@ -9,16 +9,25 @@ import * as config from '../../config/njsp.config.js';
 
 /// -------------------------------- ///
 
-const njsp = new Process(config);
-const { CONFIG, CWD, ENV, PACKAGE } = njsp;
+const njsp = new Process({ config });
+const { CWD, ENV, PACKAGE } = njsp;
 
 /// -------------------------------- ///
 
-export * as Print from './utils/functions/print.js';
+import { Print } from './utils/functions/print.js';
+
+const NJSP = {
+    Process,
+    ProcessObject, ProcessError,
+
+    njsp, CWD, ENV, PACKAGE,
+    
+    Print
+}
 
 export {
     njsp as default, njsp,
-    CONFIG as NPJS_CONFIG, CWD, ENV, PACKAGE,
+    CWD, ENV, PACKAGE,
 
-    ProcessObject, ProcessError, ErrorData
+    ProcessObject, ProcessError, ErrorData, Print
 }

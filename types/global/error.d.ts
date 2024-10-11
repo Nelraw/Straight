@@ -8,6 +8,9 @@ declare namespace Global.Error {
         reason?: string;
         details?: string;
 
-        source?: { error?: Error, object?: object };
+        source?: {
+            object?: object,
+            error?:Error
+        };
     }
 }

@@ -9,39 +9,37 @@ import { makerOf } from './utils/functions/meta.js';
 
 /// -------------------------------- ///
 
-const CWD = process.cwd();
+type Dict = Global.Dict;
+type ErrorData = Global.Error.ErrorData;
 
 /// -------------------------------- ///
 
-// type ErrorDataFunction<D extends Global.Dict = Global.Dict> = () => ErrorData<D>;
+import $Process = Global.Process;
 
-// type ErrorDataFetcher<D extends Global.Dict | ErrorDataFunction = Global.Dict> = D extends ErrorDataFunction
-//     ? ReturnType<D>
-//     : Global.Error.ErrorData<D>;
+type ProcessDataProperties = $Process.ProcessDataProperties;
+type ProcessDataReader = $Process.ProcessDataReader;
+type ProcessDataOptions = $Process.ProcessDataOptions;
 
-// type ErrorData<D extends Global.Dict | ErrorDataFunction = Global.Dict> = D extends ErrorDataFunction
-//     ? ErrorDataFetcher<D>
-//     : Global.Error.ErrorData<D>;
+type ProcessEnvOptions = $Process.ProcessEnvOptions;
+type ProcessPackageOptions = $Process.ProcessPackageOptions;
 
-// type ErrorArgs<D extends Global.Dict | undefined = undefined> = Global.Error.ErrorArgs<D>;
+type ProcessMetadataOptions = $Process.ProcessMetadataOptions;
 
-type ErrorData = Global.Error.ErrorData;
+type ProcessConfig = $Process.ProcessConfig;
+
+type ProcessOptions = $Process.ProcessOptions;
+
+/// -------------------------------- ///
 
 class ProcessError extends Error {
 
-    /// -------------------------------- ///
-
-    readonly $data!: ErrorData;
-
-    /// -------------------------------- ///
-
     declare name: string;
 
-    declare code: number;
-    declare reason: string;
-    declare details: string;
+    code: number;
+    reason: string;
+    details: string;
 
-    declare source?: object;
+    source?: object;
 
     constructor(data: ErrorData) {
         try {
@@ -58,16 +56,9 @@ class ProcessError extends Error {
             if (name) this.name = name;
             else makerOf(this).name;
     
-            data.code = code ?? -1;
-            data.reason = reason ?? `unknown`;
-            data.details = details ?? ``;
-
-            for (const key in data) {
-                const value = (data as any)[key];
-                const enumerable = false;
-
-                Object.defineProperty(this, key, { value, enumerable });
-            }
+            this.code = code ?? -1;
+            this.reason = reason ?? `unknown`;
+            this.details = details ?? ``;
 
         } catch(err) { throw err; }
     }
@@ -79,56 +70,50 @@ class ProcessError extends Error {
 
 class ProcessObject {
 
-    constructor(kwargs: { [key: string]: any } = {}) {
+    constructor() {
         try {
-            for (const key in kwargs) {
-                if ((this as any)[key]) continue;
-
-                const value = kwargs[key];
-                const enumerable = false;
-
-                Object.defineProperty(this, key, { value, enumerable });
-            }
-
 
         } catch(err) { throw err; }
     }
 
     /// -------------------------------- ///
 
-    get maker() { return makerOf(this); }
+    get maker(): typeof this { return makerOf(this); }
 }
 
 /// -------------------------------- ///
 
 class ProcessDataError extends ProcessError {
 
-    // constructor(options: ErrorData) {
-    constructor(options: ProcessError['$data']) {
-        super(options);
+    constructor(data: ErrorData) {
+        super(data);
     }
 }
 
 class ProcessData extends ProcessObject {
 
-    declare auto: boolean;
+    njsp: Process;
+    auto: boolean;
 
-    data: Global.Process.ProcessDataProperties = {};
+    data: ProcessDataProperties;
 
-    constructor(options: Global.Process.ProcessDataOptions) {
+    constructor(njsp: Process, options: ProcessDataOptions) {
         try {            
-            options.auto ??= true;
+            super();
+            
+            const read = options.read as ProcessDataReader;
 
-            const { auto, read } = options;
+            this.njsp = njsp;
+            this.auto = options.auto ?? true;
 
-            super({ auto });
+            this.data = {};
 
             const { data } = this;
             const update = () => Object.assign(data, read());
 
-            if (auto === true) update();
+            if (this.auto === true) update();
 
-            const get = (target: typeof this, key: string, receiver: any) => {
+            const get = (target: typeof this, key: string) => {
                 try {
                     if (key === 'update') return update;
 
@@ -141,13 +126,15 @@ class ProcessData extends ProcessObject {
 
         } catch(err) { throw err; }
     }
+
+    /// -------------------------------- ///
 }
 
 class ProcessEnvError extends ProcessDataError {
 
-    constructor(error: Error) {
+    constructor(env: ProcessEnv, err: Error) {
         try {
-            const source = { error };
+            const source = { object: env, error: err };
             const message = `Unable to load ENV`;
 
             super({ message, source });
@@ -158,19 +145,19 @@ class ProcessEnvError extends ProcessDataError {
 
 class ProcessEnv extends ProcessData {
 
-    constructor(auto: boolean = true) {
+    constructor(njsp: Process, options: ProcessEnvOptions = {}) {
         try {
-            const read = () => {
+            options.read ??= () => {
                 try {
                     const { env } = process;
                     if (!env.NODE_ENV) dotenv.config();
 
                     return env;
 
-                } catch(err: any) { throw new ProcessEnvError(err); } 
+                } catch(err: any) { throw new ProcessEnvError(this, err); } 
             }
 
-            super({ auto, read });
+            super(njsp, options);
 
         } catch(err) { throw err;  }
     }
@@ -178,9 +165,9 @@ class ProcessEnv extends ProcessData {
 
 class ProcessPackageError extends ProcessDataError {
 
-    constructor(error: Error) {
+    constructor(pkg: ProcessPackage, err: Error) {
         try {
-            const source = { error };
+            const source = { object: pkg, error: err };
             const message = `Unable to read package.json`;
 
             super({ message, source });
@@ -191,9 +178,9 @@ class ProcessPackageError extends ProcessDataError {
 
 class ProcessPackage extends ProcessData {
 
-    constructor(auto: boolean = true) {
+    constructor(njsp: Process, options: ProcessPackageOptions = {}) {
         try {
-            const read = () => {
+            options.read ??= () => {
                 try {
                     const cwd = process.cwd();
                     const path = resolve(cwd, 'package.json');
@@ -201,47 +188,69 @@ class ProcessPackage extends ProcessData {
         
                     return JSON.parse(file);
 
-
-                } catch(err: any) { throw new ProcessPackageError(err); } 
+                } catch(err: any) { throw new ProcessPackageError(this, err); }
             }
 
-            super({ auto, read });
+            super(njsp, options);
             
         } catch(err) { throw err; }
     }
 }
 
-class ProcessMetadata {
-    static CONFIG: Global.Process.ProcessConfig;
-    static ENV: ProcessEnv = new ProcessEnv();
-    static PACKAGE: ProcessPackage = new ProcessPackage();
-    static CWD: string = CWD.replace('file///', '').replaceAll('\\', '/');
+class ProcessMetadata extends ProcessObject {
+
+    readonly njsp: Process;
+
+    CWD: string;
+    ENV: ProcessEnv;
+    PACKAGE: ProcessPackage;
+
+    constructor(njsp: Process, options?: ProcessMetadataOptions) {
+        try {
+            super();
+
+            this.njsp = njsp;
+
+            const CWD = process.cwd().replace('file///', '')
+            this.CWD = CWD.replaceAll('\\', '/');
+
+            const { env, package: pkg } = options ?? {};
+
+            this.ENV = new ProcessEnv(njsp, env);
+            this.PACKAGE = new ProcessPackage(njsp, pkg);
+
+        } catch(err) { throw err; }
+    }
+
+    /// -------------------------------- ///
 }
 
 class Process extends ProcessObject {
-    
+
     native!: typeof process;
 
-    constructor(kwargs?: Global.Process.ProcessConfig) {
-        try {
-            super(kwargs);
-            
-            ProcessMetadata.CONFIG = kwargs ?? {};
+    config!: ProcessConfig;
+    readonly metadata!: ProcessMetadata;
 
-            Object.defineProperty(this, 'native', {
-                value: process, enumerable: false
-            });
+    constructor(options: ProcessOptions) {
+        try {
+            super();
+
+            const { config, metadata } = options;
+            
+            this.native = process;
+
+            this.config = config;
+            this.metadata = new ProcessMetadata(this, metadata);
 
         } catch(err) { throw err; }
     }
 
-    get metadata(): ProcessMetadata { return ProcessMetadata; }
+    /// -------------------------------- ///
 
-    get CONFIG(): Global.Process.ProcessConfig { return ProcessMetadata.CONFIG; }
-
-    get ENV(): Global.Dict { return ProcessMetadata.ENV; }
-    get PACKAGE(): Global.Dict { return ProcessMetadata.PACKAGE; }
-    get CWD(): string { return ProcessMetadata.CWD; }
+    get CWD(): string { return this.metadata.CWD; }
+    get ENV(): Dict { return this.metadata.ENV; }
+    get PACKAGE(): Dict { return this.metadata.PACKAGE; }
 
     get pid(): number { return this.native.pid; }
 }
@@ -249,29 +258,10 @@ class Process extends ProcessObject {
 /// -------------------------------- ///
 
 export {
-    Process, ProcessMetadata,
+    Process, type ProcessOptions,
+    ProcessMetadata, type ProcessMetadataOptions,
 
     ProcessObject, ProcessError,
 
     ErrorData
 }
-
-
-
-
-// type PropertyDescriptorMode = 'value' | 'get' | 'set';
-
-// type PropertyDescriptorSetting = { value: any } | { get: () => any } | { set: (value: any) => void }
-//     | { get: () => any; set: (value: any) => void }
-
-// type PropertyDescriptorValue = { [K in keyof PropertyDescriptorMode]: PropertyDescriptorSetting };
-
-// type PropertyDescriptorOptions = {
-//     enumerable?: boolean;
-//     configurable?: boolean,
-//     writable?: boolean
-// };
-
-// type PropertyDescriptor = PropertyDescriptorValue & PropertyDescriptorOptions;
-
-// type PropertiesDescription = { [key: string]: PropertyDescriptor };

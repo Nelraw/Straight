@@ -5,7 +5,7 @@ import { Print } from '../../../../../lib/core/utils/functions/print.js';
 
 import { Manager, ManagerError, ManagerItem, ManagerItemError } from '../../../../../lib/core/utils/classes/Manager.js';
 
-type MoneyFlowOptions = { label: string, amount: number };
+type MoneyFlowKwargs = { label: string, amount: number };
 
 type MoneyFlowErrorData<M extends Manager> = ManagerItemError<M> & { amount?: number };
 
@@ -37,16 +37,9 @@ class MoneyFlow extends ManagerItem {
     declare label: string;
     declare amount: number;
 
-    constructor(manager: Wallet, options: MoneyFlowOptions) {
+    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
         try {
-            super(manager, options);
-
-        } catch(err) { throw err; }
-    }
-
-    error(data: MoneyFlowErrorData<Wallet>) {
-        try {
-            return new MoneyFlowError(data);
+            super(manager, kwargs);
 
         } catch(err) { throw err; }
     }
@@ -56,11 +49,9 @@ class Incoming extends MoneyFlow {
 
     label: string = '';
 
-    constructor(manager: Wallet, options: MoneyFlowOptions) {
+    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
         try {
-            options.amount = options.amount * -1;
-
-            super(manager, options);
+            super(manager, kwargs);
 
         } catch(err) { throw err; }
     }
@@ -68,11 +59,11 @@ class Incoming extends MoneyFlow {
 
 class Outcoming extends MoneyFlow {
 
-    constructor(manager: Wallet, options: MoneyFlowOptions) {
+    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
         try {
-            options.amount = options.amount * -1;
+            kwargs.amount = kwargs.amount * -1;
 
-            super(manager, options);
+            super(manager, kwargs);
 
         } catch(err) { throw err; }
     }
@@ -80,11 +71,11 @@ class Outcoming extends MoneyFlow {
 
 class Waste extends Outcoming {
 
-    constructor(manager: Wallet, options: MoneyFlowOptions) {
+    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
         try {
-            options.label = options.label + ' (wasted)';
+            kwargs.label = kwargs.label + ' (wasted)';
 
-            super(manager, options);
+            super(manager, kwargs);
 
         } catch(err) { throw err; }
     }
@@ -92,21 +83,14 @@ class Waste extends Outcoming {
 
 class Wallet extends Manager {
 
-    static config = {
-        primary: { key: 'label', type: 'string' },
-        models: [ Incoming, Outcoming, Waste ]
-    };
-
     constructor() {
         try {
             const config = {
                 primary: { key: 'label', type: 'string' },
                 models: [ Incoming, Outcoming, Waste ]
             };
-
-            // super({ config } );
                 
-            super();
+            super(config);
 
         } catch(err) { throw err; }
     }
@@ -116,15 +100,7 @@ async function test() {
     try {
         const wallet = new Wallet();
 
-        const [ incomming, outcomming, waste ] = wallet.models.get();
-
-        Print.br()
-            .show('wallet: ' + wallet.primary.key, wallet).br()
-            .show('incomming', incomming).br()
-            .show('outcomming', outcomming).br()
-            .show('waste', waste).br(2);
-
-        const wasted = await wallet.create<'zob'>('zob', { label: 'Wasted', amount: 100 });
+        const wasted = await wallet.create('zob', { amount: 100 });
 
         Print(wasted).br();
 
