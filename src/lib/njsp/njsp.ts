@@ -14,7 +14,7 @@ const { CWD, ENV, PACKAGE } = njsp;
 
 /// -------------------------------- ///
 
-import { Print } from './utils/functions/print.js';
+import { Print } from '../utils/functions/print.js';
 
 const NJSP = {
     Process,

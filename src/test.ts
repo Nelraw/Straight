@@ -1,4 +1,4 @@
 
-import * as Manager from './tests/lib/core/utils/classes/Manager.test.js';
+import * as Manager from './tests/lib/utils/classes/iterables/Manager.test.js';
 
-await Manager.test();
+// await Manager.test();

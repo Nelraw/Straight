@@ -5,12 +5,14 @@ import { readFileSync } from 'fs';
 
 /// -------------------------------- ///
 
-import { makerOf } from './utils/functions/meta.js';
+import { makerOf } from '../utils/functions/meta.js';
 
 /// -------------------------------- ///
 
 type Dict = Global.Dict;
-type ErrorData = Global.Error.ErrorData;
+
+type ErrorData<D extends Dict = Dict> = Global.Error.ErrorData<D>;
+type ProcessErrorData<D extends Dict = Dict> = Global.Error.ErrorData<D>;
 
 /// -------------------------------- ///
 
@@ -39,9 +41,9 @@ class ProcessError extends Error {
     reason: string;
     details: string;
 
-    source?: object;
+    source?: { object?: object, error?: Error };
 
-    constructor(data: ErrorData) {
+    constructor(data: ProcessErrorData) {
         try {
             let message: string = typeof data !== 'string' 
                 ? data.message
@@ -78,14 +80,14 @@ class ProcessObject {
 
     /// -------------------------------- ///
 
-    get maker(): typeof this { return makerOf(this); }
+    get maker() { return makerOf(this); }
 }
 
 /// -------------------------------- ///
 
 class ProcessDataError extends ProcessError {
 
-    constructor(data: ErrorData) {
+    constructor(data: ProcessErrorData) {
         super(data);
     }
 }
@@ -261,7 +263,5 @@ export {
     Process, type ProcessOptions,
     ProcessMetadata, type ProcessMetadataOptions,
 
-    ProcessObject, ProcessError,
-
-    ErrorData
+    ProcessObject, ProcessError, ProcessErrorData, ErrorData
 }

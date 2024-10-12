@@ -1,6 +1,6 @@
 
 declare namespace Global.Error {
-    type ErrorData = string | {
+    type ErrorData<D extends Global.Dict = Global.Dict> = string | (D & {
         message: string;
 
         name?: string;
@@ -8,9 +8,6 @@ declare namespace Global.Error {
         reason?: string;
         details?: string;
 
-        source?: {
-            object?: object,
-            error?:Error
-        };
-    }
+        source?: { object?: object, error?: Error };
+    })
 }

@@ -99,6 +99,12 @@ function familyOf(object: any) {
     return family;
 }
 
+function elderOf(object: any) {
+    const family = familyOf(object);
+
+    return family[family.length - 2];
+}
+
 function childOf(object: any, query: any) {
     const family = familyOf(object);
 
@@ -146,5 +152,5 @@ export {
     Nullish, Undefined, Null,
     
     isPrimitive, isConstructor, getConstructor, getConstructorParent,
-    makerOf, typeOf, childOf, familyOf, superInit,
+    makerOf, typeOf, childOf, familyOf, elderOf, superInit,
 }

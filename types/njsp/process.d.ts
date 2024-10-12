@@ -21,6 +21,7 @@ declare namespace Global.Process {
 
     type ProcessMetadataOptions = {
         env?: ProcessEnv;
+        
         package?: ProcessPackage;
     }
 

@@ -3,23 +3,25 @@ import { v4 as uuidv4 } from 'uuid';
 
 /// -------------------------------- ///
 
-import { makerOf, childOf } from '../functions/meta.js';
+import { makerOf, childOf } from '../../functions/meta.js';
 
-import { ProcessObject, ProcessError, ErrorData } from '../../Process.js';
+import { ProcessObject, ProcessError, ProcessErrorData, ErrorData } from '../../../njsp/Process.js';
 
 /// -------------------------------- ///
 
-type ManagerErrorData<M extends Manager | typeof Manager> = ErrorData & {
-    manager: M;
-}
+type Dict = Global.Dict;
 
-class ManagerError<M extends Manager | typeof Manager> extends ProcessError {
+/// -------------------------------- ///
 
-    declare manager: M;
+class ManagerError<M extends Manager> extends ProcessError {
 
-    constructor(data: ManagerErrorData<M>) {
+    declare manager?: M;
+
+    constructor(data: ProcessErrorData, manager?: M) {
         try {
             super(data);
+
+            this.manager = manager;;
 
         } catch(err) { throw err; }
     }
@@ -29,25 +31,27 @@ class ManagerError<M extends Manager | typeof Manager> extends ProcessError {
 
 class DuplicateModelError<M extends Manager> extends ManagerError<M> {
 
-    constructor(data: ManagerErrorData<M>) {
+    model?: typeof ManagerItem;
+
+    constructor(data: ProcessErrorData, manager?: M, model?: typeof ManagerItem) {
         try {
-            super(data);
+            super(data, manager);
+
+            this.model = model;
 
         } catch(err) { throw err; }
     }
 }
 
-type ManagerItemErrorData<M extends Manager> = ErrorData & {
-    manager: M;
-}
-
 class ManagerItemError<M extends Manager> extends ManagerError<M> {
 
-    declare item?: ManagerItem;
+    item?: ManagerItem;
 
-    constructor(data: ManagerItemErrorData<M>) {
+    constructor(data: ProcessErrorData, item?: ManagerItem) {
         try {
             super(data);
+
+            this.item = item;
 
         } catch(err) { throw err; }
     }
@@ -55,9 +59,13 @@ class ManagerItemError<M extends Manager> extends ManagerError<M> {
 
 class DuplicateItemError<M extends Manager> extends ManagerItemError<M> {
 
-    constructor(data: ManagerItemErrorData<M>) {
+    declare item: ManagerItem;
+
+    constructor(data: ProcessErrorData, item: ManagerItem) {
         try {
             super(data);
+
+            this.item = item;
 
         } catch(err) { throw err; }
     }
@@ -65,9 +73,13 @@ class DuplicateItemError<M extends Manager> extends ManagerItemError<M> {
 
 class UnknownModelError<M extends Manager> extends ManagerError<M> {
 
-    constructor(data: ManagerErrorData<M>) {
+    model?: string;
+
+    constructor(data: ProcessErrorData, model?: string) {
         try {
             super(data);
+
+            this.model = model;
 
         } catch(err) { throw err; }
     }
@@ -143,6 +155,13 @@ class ManagerModels<M extends Manager> extends ProcessObject {
 
         } catch(err) { throw err; }
     }
+
+    [Symbol.iterator]() {
+        try {
+            return this.models[Symbol.iterator]();
+
+        } catch(err) { throw err; }
+    }
 }
 
 class Manager extends ProcessObject {
@@ -166,6 +185,12 @@ class Manager extends ProcessObject {
 
             if (!key || !type) {
                 const message = 'Primary key is undefined';
+
+                throw new ManagerError({ manager: this, message });
+            }
+
+            if (this.models.lenght === 0) {
+                const message = 'No any defined model';
 
                 throw new ManagerError({ manager: this, message });
             }
