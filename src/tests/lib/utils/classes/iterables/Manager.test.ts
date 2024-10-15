@@ -1,110 +1,109 @@
 
 // import { njsp, ProcessObject, ProcessError } from '../../../../../lib/core/njsp.js';
 
-// import { Print } from '../../../../../lib/utils/functions/print.js';
+import { Print } from '../../../../../lib/utils/functions/print.js';
 
-// import { Manager, ManagerError, ManagerItem, ManagerItemError } from '../../../../../lib/utils/classes/iterables/Manager.js';
+import { Manager, ManagerError, type ManagerOptions, ManagerItem, ManagerItemError } from '../../../../../lib/utils/classes/iterables/Manager.js';
 
-// type MoneyFlowKwargs = { label: string, amount: number };
+class MoneyFlowError<M extends Manager> extends ManagerItemError<M> {
 
-// type MoneyFlowErrorData<M extends Manager> = ManagerItemError<M> & { amount?: number };
+    static manager: Manager;
 
-// class MoneyFlowError<M extends Manager> extends ManagerItemError<M> {
+    /// -------------------------------- ///
 
-//     static manager: Manager;
+    constructor(data: Global.Error.ErrorData, manager: M) {
+        try {
+            super(data, manager);
 
-//     /// -------------------------------- ///
+        } catch(err) { throw err; }
+    }
 
-//     constructor(data: MoneyFlowErrorData<M>) {
-//         try {
-//             super(data);
+    /// -------------------------------- ///
 
-//         } catch(err) { throw err; }
-//     }
+}
 
-//     /// -------------------------------- ///
+type MoneyFlowKwargs = { label: string; amount: number; }; 
 
-// }
+class MoneyFlow extends ManagerItem<Wallet> {
 
-// class MoneyFlow extends ManagerItem {
+    declare label: string;
+    declare amount: number;
 
-//     declare label: string;
-//     declare amount: number;
+    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
+        try {
+            super(manager, kwargs);
 
-//     declare kwargs: MoneyFlowKwargs;
+            this.amount = kwargs.amount;
 
-//     constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
-//         try {
-//             super(manager, kwargs);
+        } catch(err) { throw err; }
+    }
+}
 
-//         } catch(err) { throw err; }
-//     }
-// }
+class Incoming extends MoneyFlow {
 
-// class Incoming extends MoneyFlow {
+    label: string = '';
 
-//     label: string = '';
+    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
+        try {
+            super(manager, kwargs);
 
-//     constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
-//         try {
-//             super(manager, kwargs);
+        } catch(err) { throw err; }
+    }
+}
 
-//         } catch(err) { throw err; }
-//     }
-// }
+class Outcoming extends MoneyFlow {
 
-// class Outcoming extends MoneyFlow {
+    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
+        try {
+            kwargs.amount = kwargs.amount * -1;
 
-//     constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
-//         try {
-//             kwargs.amount = kwargs.amount * -1;
+            super(manager, kwargs);
 
-//             super(manager, kwargs);
+        } catch(err) { throw err; }
+    }
+}
 
-//         } catch(err) { throw err; }
-//     }
-// }
+class Waste extends Outcoming {
 
-// class Waste extends Outcoming {
+    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
+        try {
+            kwargs.label = kwargs.label + ' (wasted)';
 
-//     constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
-//         try {
-//             kwargs.label = kwargs.label + ' (wasted)';
+            super(manager, kwargs);
 
-//             super(manager, kwargs);
+        } catch(err) { throw err; }
+    }
+}
 
-//         } catch(err) { throw err; }
-//     }
-// }
+class Wallet extends Manager {
 
-// class Wallet extends Manager {
+    declare pkey: 'label';
 
-//     constructor() {
-//         try {
-//             const options = {
-//                 primary: [ 'label', 'string' ] as Manager['primary'],
-//                 models: [ Incoming, Outcoming, Waste ]
-//             };
+    constructor() {
+        try {
+            const options = {
+                pkey: 'label',
+                models: [ MoneyFlow, Incoming, Outcoming, Waste ]
+            };
                 
-//             super(options);
+            super(options);
 
-//         } catch(err) { throw err; }
-//     }
-// }
+        } catch(err) { throw err; }
+    }
+}
 
-// async function test() {
-//     try {
-//         const wallet = new Wallet();
+async function test() {
+    try {
+        const wallet = new Wallet();
 
-//         const model = 'Outcoming';
-//         const kwargs = { amount: 100 };
+        const model = 'Outcoming';
+        const kwargs = { label: 'Test', amount: 100 };
 
-//         const outcoming = await wallet.create({ model, kwargs });
+        const outcoming = await wallet.create<'Outcoming'>(model, kwargs);
 
-//         Print(outcoming).br();
-//         Print(wallet.models[0])
+        Print(outcoming).br();
 
-//     } catch(err) { throw err; }
-// }
+    } catch(err) { throw err; }
+}
 
-// export { test, MoneyFlow, Incoming, Outcoming, Waste, Wallet }
+export { test, MoneyFlow, Incoming, Outcoming, Waste, Wallet }
