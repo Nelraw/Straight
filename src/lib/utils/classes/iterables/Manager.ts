@@ -14,7 +14,6 @@ type Dict<T = any> = Global.Dict<T>;
 
 import $Class = Global.Class;
 type Constructor<T> = $Class.Constructor<T>;
-type Name<T> = $Class.Constructor<T>;
 
 /// -------------------------------- ///
 
@@ -235,7 +234,13 @@ type ManagerModel<M extends Manager<any>, N extends ManagerModelNames<M>> = M[`m
 type ManagerModelInstance<M extends Manager<any>, N extends ManagerModelNames<M>> = InstanceType<ManagerModel<M, N>>;
 
 type ManagerModelParameters<M extends Manager<any>, N extends ManagerModelNames<M>> = ConstructorParameters<ManagerModel<M, N>>
-type ManagerModelCreation<M extends Manager<any>, N extends ManagerModelNames<M>> = [ N, ...ManagerModelParameters<M, N> ];
+// type ManagerModelCreation<M extends Manager<any>, N extends ManagerModelNames<M>> = [ N, ...ManagerModelParameters<M, N> ];
+
+// type ManagerModelCreation<M extends Manager<any>, N extends ManagerModelNames<M>> = Extract<ManagerModelNames<M>, N> extends infer Name
+//     ? [ Name, ...ManagerModelParameters<M, N> ]
+//     : never;
+
+type ManagerModelCreation<M extends Manager<any>, N extends ManagerModelNames<M>> = [ N, ...ManagerModelParameters<M, N> ]
 
 type ManagerOptions = {
     name?: string;
@@ -259,13 +264,23 @@ class Manager<Models> extends ProcessObject {
             }
 
             name ??= this.maker.name as string;
-            
+
             this.models = models;
 
             this.indexer = indexer;
             this.name = name.toLowerCase();
 
             this.items = new ManagerItemsHandler(this);
+
+        } catch(err) { throw err; }
+    }
+
+    getModel<N extends ManagerModelNames<this>>(name: N) {
+        try {
+            const { models } = this;
+            const model = models[name];
+            
+            return model;
 
         } catch(err) { throw err; }
     }
@@ -278,7 +293,7 @@ class Manager<Models> extends ProcessObject {
 
             const [ modelName, ...rest ] = args;
 
-            const maker = (models as any)[(modelName as string)];
+            const maker = this.getModel(modelName);
             const inst = new (maker as any)(...rest);
 
             Object.defineProperty(inst, this.name, { value: this });

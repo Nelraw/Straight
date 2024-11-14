@@ -103,14 +103,22 @@ async function test() {
     try {
         const wallet = new Wallet();
 
+        type Names = $Manager.ManagerModelNames<typeof wallet>;
+
         const model = `Outcoming`;
-        const outcoming = await wallet.create<`${typeof model}`>('Outcoming', 'out', 100);
+        // const outcoming = await wallet.create<`${typeof model}`>('Outcoming', 'out', 100);
+        const outcoming = await wallet.create('Outcoming', 'out', 100);
 
         Print(outcoming).br(2);
 
-        const wasted = await wallet.create<`Waste`>('Waste', 'wasted', 100, 50);
+        const wasted = await wallet.create('Waste', 'wasted', 100, 50);
+        // const wasted = await wallet.create<`Waste`>('Waste', 'wasted', 100, 50);
 
         Print(wasted).br(2);
+
+        // Print(wallet.getModel(`Waste`))
+        const got = wallet.getModel(`Waste`);
+        Print(got)
 
         // type Names = $Manager.ManagerModelNames<typeof wallet>;
         // type Models = $Manager.ManagerModels<typeof wallet>;
