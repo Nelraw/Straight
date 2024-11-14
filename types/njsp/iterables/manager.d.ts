@@ -11,6 +11,7 @@ namespace Global.Iterables.Manager {
 
 
     type ManagerModels<M extends Manager> = { [K in keyof M['models']['object']]: M['models']['object'][K] };
+    type ManagerModelNames<M extends Manager> = M['models']['keys'];
 
     type ManagerModelsKwargs<M extends Manager> = ManagerModels<M> extends infer Models
         ? { [K in keyof Models]: ConstructorParameters<Constructor<Models[K]>>[1] }

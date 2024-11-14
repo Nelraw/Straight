@@ -1,286 +1,319 @@
 
-// import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 
-// /// -------------------------------- ///
+/// -------------------------------- ///
 
-// import { makerOf, childOf } from '../../functions/meta.js';
+import { makerOf, childOf } from '../../functions/meta.js';
 
-// import { ProcessObject, ProcessError, ProcessErrorData, ErrorData } from '../../../njsp/Process.js';
-// import { List, ListError, type ListEntry, type ListEntries } from './List.js';
+import { ProcessObject, ProcessError, ProcessErrorData, ErrorData } from '../../../njsp/Process.js';
+import { List, ListError, type ListEntry, type ListEntries } from './List.js';
 
-// /// -------------------------------- ///
+/// -------------------------------- ///
 
-// type Dict<T = any> = Global.Dict<T>;
-// type Constructor<T> = Global.Class.Constructor<T>;
+type Dict<T = any> = Global.Dict<T>;
 
-// /// -------------------------------- ///
+import $Class = Global.Class;
+type Constructor<T> = $Class.Constructor<T>;
+type Name<T> = $Class.Constructor<T>;
 
-// import $Manager = Global.Iterables.Manager;
+/// -------------------------------- ///
 
-// type ManagerModels<M extends Manager> = $Manager.ManagerModels<M>;
-// type ManagerModelsKwargs<M extends Manager> = $Manager.ManagerModelsKwargs<M>;
-// type ManagerModelKwargs<M extends Manager, N extends keyof ManagerModels<M>> = $Manager.ManagerModelsKwargs<M>[N];
+import $Manager = Global.Iterables.Manager;
+import $Array = Global.Iterables.Array;
 
-// type ManagerItemKwargs<M extends Manager, N extends keyof ManagerModels<M>> = Required<Record<M['pkey'][0], any>>
-//     & $Manager.ManagerModelKwargs<M, N>;
+/// -------------------------------- ///
 
-// // type ManagerItemKwargs<M extends Manager, I extends ManagerItem<M>> = Required<M['label']>
-// //     & $Manager.ManagerModelKwargs<M, I['maker']['name']>;
+class ManagerError<M extends Manager> extends ProcessError {
 
-// /// -------------------------------- ///
+    declare manager?: M;
 
-// class ManagerError<M extends Manager> extends ProcessError {
+    constructor(data: ProcessErrorData, manager?: M) {
+        try {
+            super(data);
 
-//     declare manager?: M;
+            this.manager = manager;
 
-//     constructor(data: ProcessErrorData, manager?: M) {
-//         try {
-//             super(data);
+        } catch(err) { throw err; }
+    }
 
-//             this.manager = manager;
+    /// -------------------------------- ///
+}
 
-//         } catch(err) { throw err; }
-//     }
+class ManagerItemError<M extends Manager> extends ManagerError<M> {
 
-//     /// -------------------------------- ///
-// }
+    item?: ManagerItem<M>;
 
-// class ManagerItemError<M extends Manager> extends ManagerError<M> {
+    constructor(data: ProcessErrorData, manager: M, item?: ManagerItem<M>) {
+        try {
+            super(data, manager);
 
-//     item?: ManagerItem<M>;
+            this.item = item;
 
-//     constructor(data: ProcessErrorData, manager: M, item?: ManagerItem<M>) {
-//         try {
-//             super(data, manager);
+        } catch(err) { throw err; }
+    }
+}
 
-//             this.item = item;
+class ManagerItem<M extends Manager> extends ProcessObject {
 
-//         } catch(err) { throw err; }
-//     }
-// }
-
-// class ManagerItem<M extends Manager> extends ProcessObject {
-
-//     manager: M;
+    manager: M;
     
-//     // constructor(manager: M, kwargs: Global.Dict) {
-//     constructor(manager: M, kwargs: ManagerItemKwargs<M, any>) {
-//         try {
-//             super();
+    constructor(manager: M, kwargs: Global.Dict) {
+        try {
+            super();
 
-//             this.manager = manager;
-//             this.$init(kwargs);
+            const { pkey: [ pkey, pvalue ] } = manager;
 
-//         } catch(err) { throw err; }
-//     }
+            const kwargsPrimary = (kwargs as any)[pkey];
 
-//     protected async $init(kwargs: ManagerItemKwargs<M, this['maker']['name']>) {
-//         try {
-//             return this;
+            if (!kwargsPrimary) {
+                const message = `Primary key "${pkey}" is undefined`;
 
-//         } catch(err) { throw err; }
-//     }
+                throw new ManagerItemError({ message }, manager);
+            }
 
-// }
+            if (typeof pvalue !== typeof kwargsPrimary) {
+                const message = `Invalid primary value type ("${pkey}")`;
 
-// /// -------------------------------- ///
+                throw new ManagerItemError({ message }, manager);
+            }
 
-// class ManagerModelsListError<M extends Manager> extends ListError<string, typeof ManagerItem> {
+            this.manager = manager;
 
-//     constructor(data: ProcessErrorData, list?: List<string, typeof ManagerItem>) {
-//         try {
-//             super(data, list);
+            Object.assign(this, { ...kwargs });
 
-//         } catch(err) { throw err; }
-//     }
-// }
+        } catch(err) { throw err; }
+    }
+}
 
-// class ManagerModelsList<M extends Manager> extends List<string, typeof ManagerItem> {
+/// -------------------------------- ///
 
-//     manager: M;
+class ManagerModels<M extends Manager> extends ProcessObject {
 
-//     constructor(manager: M) {
-//         try {
-//             super();
+    manager: M;
 
-//             this.manager = manager;
+    protected models: Array<typeof ManagerItem> = []; 
 
-//         } catch(err) { throw err; }
-//     }
+    constructor(manager: M, ...models: Array<typeof ManagerItem>) {
+        try {
+            super();
 
-//     protected get models() { return this.list; }
+            this.manager = manager;
 
-//     get object() {
-//         try {
-//             const { values: models } = this;
-//             const result: Global.Dict = {};
+            this.add(...models);
 
-//             for (const model of models) {
-//                 result[model.name] = model;
-//             }
+        } catch(err) { throw err; }
+    }
 
-//             return result;
+    get base() {
+        try {
+            return this.models[0];
 
-//         } catch(err) { throw err; }
-//     }
+        } catch(err) { throw err; }
+    }
 
-//     get primary() {
-//         try {
-//             const { first } = this;
+    get object() {
+        try {
+            const { models } = this;
+            const result: Global.Dict = {};
 
-//             return (first ?? [])[1];
+            for (const model of models) {
+                result[model.name] = model;
+            }
 
-//         } catch(err) { throw err; }
-//     }
+            return result;
 
-//     add(...models: Array<typeof ManagerItem> | Array<[ string, typeof ManagerItem ]>) {
-//         try {
-//             models = models as Array<typeof ManagerItem>;
+        } catch(err) { throw err; }
+    }
 
-//             for (const model of models) {
-//                 super.add([ model.name, model ]);
-//             }
+    get(name: string | $Array.Matcher<typeof ManagerItem>) {
+        try {
+            const { models } = this;
 
-//         } catch(err) { throw err; }
-//     }
-// }
+            if (typeof name == `function`) {
+                const found = models.find(name);
 
-// /// -------------------------------- ///
+                if (found) return found as typeof found;
+            }
 
-// class ManagerItemsListError<M extends Manager> extends ListError<string, ManagerItem<M>> {
+            const finder = (item: typeof ManagerItem) => item.name == name;
+            const found = models.find(finder);
 
-//     constructor(data: ProcessErrorData, list?: List<string, ManagerItem<M>>) {
-//         try {
-//             super(data, list);
+            if (found) return found as typeof found;
 
-//         } catch(err) { throw err; }
-//     }
-// }
+        } catch(err) { throw err; }
+    }
 
-// class ManagerItemsList<M extends Manager> extends List<string, ManagerItem<M>> {
+    fetch(...names: Array<string> | [ $Array.Matcher<typeof ManagerItem> ]) {
+        try {
+            const { models } = this;
+            const { length: len } = names;
 
-//     manager: M;
+            if (len == 0) return models;
 
-//     constructor(manager: M) {
-//         try {
-//             super();
+            if (len == 1 && typeof names[0] == `function`) {
+                return models.filter(names[0]);
+            }
 
-//             this.manager = manager;
+            const matcher = (item: typeof ManagerItem, i: number) => {
+                const finder = (name: string) => name == item.name;
+                
+                return (names as Array<string>).find(finder);
+            }
 
-//         } catch(err) { throw err; }
-//     }
+            return models.filter(matcher);
 
-//     /// -------------------------------- ///
+        } catch(err) { throw err; }
+    }
 
-//     protected get models() { return this.list; }
-// }
+    add(...models: Array<typeof ManagerItem>) {
+        try {
+            this.models.push(...models);
 
-// /// -------------------------------- ///
+        } catch(err) { throw err; }
+    }
+}
 
-// type ManagerPrimaryKey<PK extends string = string> = [ PK ];
-// type ManagerModelsOptions<M extends typeof ManagerItem> = Array<M>;
-// // type ManagerPrimaryKey<PK extends string = string> = [key: PK, type: string];
+/// -------------------------------- ///
 
-// type ManagerOptions<I extends typeof ManagerItem = typeof ManagerItem> = {
-//     pkey: string;
-//     models: I;
-// }
+class ManagerItemsListError<M extends Manager> extends ListError<string, ManagerItem<M>> {
 
-// class Manager extends ProcessObject {
+    constructor(data: ProcessErrorData, list?: List<string, ManagerItem<M>>) {
+        try {
+            super(data, list);
 
-//     readonly pkey!: [ string ];
+        } catch(err) { throw err; }
+    }
+}
 
-//     models: ManagerModelsList<this> = new ManagerModelsList(this);
-//     protected items: ManagerItemsList<this> = new ManagerItemsList(this);
+class ManagerItemsList<M extends Manager> extends List<string, ManagerItem<M>> {
 
-//     constructor(options: ManagerOptions) {
-//         try {
-//             super();
+    manager: M;
 
-//             const { pkey, models } = options;
+    constructor(manager: M) {
+        try {
+            super();
 
-//             this.pkey = [ pkey ];
-//             this.models.add(...models);
+            this.manager = manager;
 
-//             if (Object.keys(this.pkey).length === 0) {
-//                 const message = 'Manager item label is undefined';
+        } catch(err) { throw err; }
+    }
 
-//                 throw new ManagerError({ manager: this, message });
-//             }
+    /// -------------------------------- ///
 
-//             if (this.models.length === 0) {
-//                 const message = 'No any defined model';
+    protected get models() { return this.list; }
+}
 
-//                 throw new ManagerError({ manager: this, message });
-//             }
+/// -------------------------------- ///
 
-//         } catch(err) { throw err; }
-//     }
 
-//     /// -------------------------------- ///
+/// -------------------------------- ///
 
-//     async create<N extends keyof ManagerModels<this>>(modelName: N, kwargs: ManagerItemKwargs<this, N>) {
-//         try {
-//             const { models, items } = this;
+type ManagerOptions = {
+    name?: string;
+    pkey: [ string, any ];
+    models: Array<any>;
+}
 
-//             const name = modelName ?? models.primary?.name;
+class Manager extends ProcessObject {
 
-//             if (!name) {
-//                 const message = `No model name provided`;
+    name!: string;
+    pkey: [ string, object ];
 
-//                 throw new ManagerError({ manager: this, message });
-//             }
+    models: ManagerModels<this>;
+    protected items: ManagerItemsList<this>;
 
-//             const maker = models.get(name as string);
+    constructor(options: ManagerOptions) {
+        try {
+            super();
 
-//             if (!maker) {
-//                 const message = name === undefined
-//                     ? `No any defined model`
-//                     : `Invalid model name "${name as string}"`;
+            const { name, pkey, models } = options;
 
-//                 throw new ManagerError({ manager: this, message });
-//             }
+            this.name = name ?? makerOf(this).name;
+            this.pkey = pkey;
 
-//             return new maker(this, kwargs);
+            this.models = new ManagerModels(this, ...models);
+            this.items = new ManagerItemsList(this);
 
-//             // const [ pkey, ptype ] = primary;
-//             // const prim = (kwargs ?? {})[pkey];
+            if (this.pkey === undefined) {
+                const message = 'Manager item primary key is undefined';
 
-//             // if (!prim) {
-//             //     const message = `Primary key "${pkey}" is undefined`;
+                throw new ManagerError({ manager: this, message });
+            }
 
-//             //     throw new ManagerItemError({ manager: this, message });
-//             // } else {
-//             //     const callback = (i: ManagerItem) => (i as any)[pkey] === prim;
+            if (Object.keys(this.models).length === 0) {
+                const message = 'No any defined model';
 
-//             //     if (this.items.find(callback)) {
-//             //         const message = `Item with primary key "${pkey}" already exists`;
+                throw new ManagerError({ manager: this, message });
+            }
 
-//             //         throw new DuplicateItemError({ manager: this, message });
-//             //     } else {
-//             //         const types = [ makerOf(prim), makerOf(ptype) ];
+        } catch(err) { throw err; }
+    }
 
-//             //         if (!childOf(prim, primary[1])) {
-//             //             const txt = `${types[0].name} instead of ${types[1].name}`;
-//             //             const message = `Primary value "${pkey}" is ${txt}`;
+    /// -------------------------------- ///
 
-//             //             throw new ManagerItemError({ manager: this, message });
-//             //         }
-//             //     }
-//             // }
+    async create(modelName: string, kwargs: Dict) {
+        try {
+            const { models, items } = this;
 
-//         } catch(err) { throw err; }
-//     }
-// }
+            const name = modelName ?? models.base?.name;
 
-// /// -------------------------------- ///
+            if (!name) {
+                const message = `No model name provided`;
 
-// export {
-//     Manager, ManagerError,
-//     type ManagerPrimaryKey, type ManagerOptions,
+                throw new ManagerError({ manager: this, message });
+            }
 
-//     ManagerItem, ManagerItemError,
+            const maker = models.get(name as string);
 
-//     // ManagerError, ManagerErrorData,
-//     // ManagerItemError, DuplicateItemError,
-// }
+            if (!maker) {
+                const message = name === undefined
+                    ? `No any defined model`
+                    : `Invalid model name "${name as string}"`;
+
+                throw new ManagerError({ manager: this, message });
+            }
+
+            return new maker(this, kwargs) as any;
+
+            // const [ pkey, ptype ] = primary;
+            // const prim = (kwargs ?? {})[pkey];
+
+            // if (!prim) {
+            //     const message = `Primary key "${pkey}" is undefined`;
+
+            //     throw new ManagerItemError({ manager: this, message });
+            // } else {
+            //     const callback = (i: ManagerItem) => (i as any)[pkey] === prim;
+
+            //     if (this.items.find(callback)) {
+            //         const message = `Item with primary key "${pkey}" already exists`;
+
+            //         throw new DuplicateItemError({ manager: this, message });
+            //     } else {
+            //         const types = [ makerOf(prim), makerOf(ptype) ];
+
+            //         if (!childOf(prim, primary[1])) {
+            //             const txt = `${types[0].name} instead of ${types[1].name}`;
+            //             const message = `Primary value "${pkey}" is ${txt}`;
+
+            //             throw new ManagerItemError({ manager: this, message });
+            //         }
+            //     }
+            // }
+
+        } catch(err) { throw err; }
+    }
+}
+
+/// -------------------------------- ///
+
+export {
+    Manager, ManagerError, type ManagerOptions,
+
+    ManagerModels,
+
+    ManagerItem, ManagerItemError,
+
+    // ManagerError, ManagerErrorData,
+    // ManagerItemError, DuplicateItemError,
+}

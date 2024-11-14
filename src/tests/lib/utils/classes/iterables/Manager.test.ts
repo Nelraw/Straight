@@ -3,37 +3,47 @@
 
 import { Print } from '../../../../../lib/utils/functions/print.js';
 
-import { Manager, ManagerError, type ManagerOptions, ManagerItem, ManagerItemError } from '../../../../../lib/utils/classes/iterables/Manager.js';
+// import {
+//     Manager, ManagerError, type ManagerOptions,
+//     ManagerItem, ManagerItemError,
+// } from '../../../../../lib/utils/classes/iterables/Manager.js';
 
-class MoneyFlowError<M extends Manager> extends ManagerItemError<M> {
 
-    static manager: Manager;
+import * as $List from '../../../../../lib/utils/classes/iterables/List.js';
+import * as $Manager from '../../../../../lib/utils/classes/iterables/Manager.js';
 
-    /// -------------------------------- ///
+import { ProcessObject } from '../../../../../lib/njsp/Process.js';
 
-    constructor(data: Global.Error.ErrorData, manager: M) {
-        try {
-            super(data, manager);
+// class MoneyFlowError<M extends $Manager.Manager> extends $Manager.ManagerItemError {
 
-        } catch(err) { throw err; }
-    }
+//     static manager: $Manager.Manager;
 
-    /// -------------------------------- ///
+//     /// -------------------------------- ///
 
-}
+//     constructor(data: Global.Error.ErrorData, manager: M) {
+//         try {
+//             super(data, manager);
 
-type MoneyFlowKwargs = { label: string; amount: number; }; 
+//         } catch(err) { throw err; }
+//     }
 
-class MoneyFlow extends ManagerItem<Wallet> {
+//     /// -------------------------------- ///
+
+// }
+
+type MoneyFlowKwargs = { label: string; amount: number; };
+
+class MoneyFlow extends ProcessObject {
 
     declare label: string;
     declare amount: number;
 
-    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
+    constructor(label: string, amount: number) {
         try {
-            super(manager, kwargs);
+            super();
 
-            this.amount = kwargs.amount;
+            this.label = label;
+            this.amount = amount;
 
         } catch(err) { throw err; }
     }
@@ -43,9 +53,9 @@ class Incoming extends MoneyFlow {
 
     label: string = '';
 
-    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
+    constructor(label: string, amount: number) {
         try {
-            super(manager, kwargs);
+            super(label, amount);
 
         } catch(err) { throw err; }
     }
@@ -53,11 +63,9 @@ class Incoming extends MoneyFlow {
 
 class Outcoming extends MoneyFlow {
 
-    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
+    constructor(label: string, amount: number) {
         try {
-            kwargs.amount = kwargs.amount * -1;
-
-            super(manager, kwargs);
+            super(label, amount * -1);
 
         } catch(err) { throw err; }
     }
@@ -65,28 +73,27 @@ class Outcoming extends MoneyFlow {
 
 class Waste extends Outcoming {
 
-    constructor(manager: Wallet, kwargs: MoneyFlowKwargs) {
-        try {
-            kwargs.label = kwargs.label + ' (wasted)';
+    lost?: number;
 
-            super(manager, kwargs);
+    constructor(label: string, amount: number, lost?: number) {
+        try {
+            label += ' (wasted)';
+
+            super(label, amount);
+
+            this.lost = lost;
 
         } catch(err) { throw err; }
     }
 }
 
-class Wallet extends Manager {
+const models = { MoneyFlow, Incoming, Outcoming, Waste };
 
-    declare pkey: 'label';
+class Wallet extends $Manager.Manager<typeof models> {
 
     constructor() {
         try {
-            const options = {
-                pkey: 'label',
-                models: [ MoneyFlow, Incoming, Outcoming, Waste ]
-            };
-                
-            super(options);
+            super(models, [ `label`, '' ]);
 
         } catch(err) { throw err; }
     }
@@ -96,14 +103,51 @@ async function test() {
     try {
         const wallet = new Wallet();
 
-        const model = 'Outcoming';
-        const kwargs = { label: 'Test', amount: 100 };
+        const model = `Outcoming`;
+        const outcoming = await wallet.create<`${typeof model}`>('Outcoming', 'out', 100);
 
-        const outcoming = await wallet.create<'Outcoming'>(model, kwargs);
+        Print(outcoming).br(2);
 
-        Print(outcoming).br();
+        const wasted = await wallet.create<`Waste`>('Waste', 'wasted', 100, 50);
+
+        Print(wasted).br(2);
+
+        // type Names = $Manager.ManagerModelNames<typeof wallet>;
+        // type Models = $Manager.ManagerModels<typeof wallet>;
+
+        // type Out = $Manager.ManagerModel<typeof wallet, `Outcoming`>;
+        // type Args = $Manager.ManagerModelParameters<typeof wallet, `Outcoming`>
 
     } catch(err) { throw err; }
 }
 
-export { test, MoneyFlow, Incoming, Outcoming, Waste, Wallet }
+// async function testing() {
+//     try {
+        
+//         const options: HandlerOptions = {
+//             items: [ Item, TestItem, TryItem, TestingItem ]
+//         }
+        
+//         const handler = new Handler(options);
+
+//         type X = keyof (typeof handler.items.object);
+//         type Y = typeof handler.items.names;
+        
+//         Print(handler).br();
+        
+//         const item = await handler.create<`Item`>(`Item`, { id: 'zob', bits: 64 });
+
+//         Print(item).br();
+
+//         type Kwargs = ConstructorParameters<typeof TestItem>[1]
+
+//         const testItem = await handler.create<`TestItem`>(`TestItem`, { id: 'zob', bits: 64 });
+
+//         Print(testItem).br();
+
+//     } catch(err) { throw err; }
+// }
+
+
+export { test }//, MoneyFlow, Incoming, Outcoming, Waste, Wallet }
+// export { test, MoneyFlow, Incoming, Outcoming, Waste, Wallet }

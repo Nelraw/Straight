@@ -11,7 +11,7 @@ type Matcher<T> = Global.Iterables.Array.Matcher<T>;
 
 /// -------------------------------- ///
 
-class ListError<K extends string, O extends object> extends ProcessError {
+class ListError<K extends string | number, O> extends ProcessError {
 
     list?: List<K, O>;
 
@@ -29,15 +29,13 @@ class ListError<K extends string, O extends object> extends ProcessError {
 }
 
 // type ListEntry<K extends string, O extends object> = Parameters<(key: K, object: O) => void>;
-type ListEntry<K extends string, O extends object> = [ K, O ];
-type ListEntries<K extends string, O extends object> = Array<ListEntry<K, O>>;
+type ListEntry<K extends string | number, O> = [ K, O ];
+type ListEntries<K extends string | number, O> = Array<ListEntry<K, O>>;
 
-class List<K extends string, O extends object> extends ProcessObject {
+class List<K extends string | number, O> extends ProcessObject {
 
     protected list: Map<K, O>;
 
-    // constructor(...items: Array<[ K, O ]>) {
-    // constructor(...items: Array<ListEntry<K, O>>) {
     constructor(...items: ListEntries<K, O>) {
         try {
             super();
@@ -64,13 +62,13 @@ class List<K extends string, O extends object> extends ProcessObject {
     get object() {
         try {
             const { entries } = this;
-            const result: Global.Dict<O> = {};
+            const result: any = {};
 
             for (const [ key, value ] of entries) {
                 result[key] = value;
             }
 
-            return result;
+            return result as Record<K, O>;
 
         } catch(err) { throw err; }
     }
@@ -110,7 +108,6 @@ class List<K extends string, O extends object> extends ProcessObject {
             this.list.set(key, value);
 
             return [ key, value ];
-            // return value;
 
         } catch(err) { throw err; }
     }
@@ -131,10 +128,13 @@ class List<K extends string, O extends object> extends ProcessObject {
     delete(key: K | O) {
         try {
             const { list } = this;
+            const type = typeof key;
+            
+            if (type !== `string` && type !== `number`) {
+                key = this.keyOf(key as O) as K;
+            }
 
-            if (typeof key !== 'string') key = this.keyOf(key) as K;
-
-            if (list.has(key)) return list.delete(key);
+            if (list.has(key as K)) return list.delete(key as K);
 
         } catch(err) { throw err; }
     }

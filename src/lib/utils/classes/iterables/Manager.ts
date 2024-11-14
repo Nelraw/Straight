@@ -11,26 +11,26 @@ import { List, ListError, type ListEntry, type ListEntries } from './List.js';
 /// -------------------------------- ///
 
 type Dict<T = any> = Global.Dict<T>;
-type Constructor<T> = Global.Class.Constructor<T>;
+
+import $Class = Global.Class;
+type Constructor<T> = $Class.Constructor<T>;
+type Name<T> = $Class.Constructor<T>;
 
 /// -------------------------------- ///
 
 import $Manager = Global.Iterables.Manager;
-
-type ManagerModels<M extends Manager> = $Manager.ManagerModels<M>;
-type ManagerModelsKwargs<M extends Manager> = $Manager.ManagerModelsKwargs<M>;
-type ManagerModelKwargs<M extends Manager, N extends keyof ManagerModels<M>> = $Manager.ManagerModelsKwargs<M>[N];
-
-type ManagerItemKwargs<M extends Manager, N extends keyof ManagerModels<M>> = Required<Record<M['pkey'], string>>
-    & $Manager.ManagerModelKwargs<M, N>;
+import $Iterables = Global.Iterables;
+import $Array = Global.Iterables.Array;
 
 /// -------------------------------- ///
 
-class ManagerError<M extends Manager> extends ProcessError {
+class ManagerError extends ProcessError {
 
-    declare manager?: M;
+    /// -------------------------------- ///
 
-    constructor(data: ProcessErrorData, manager?: M) {
+    manager?: any
+
+    constructor(data: ProcessErrorData, manager?: any) {
         try {
             super(data);
 
@@ -42,11 +42,11 @@ class ManagerError<M extends Manager> extends ProcessError {
     /// -------------------------------- ///
 }
 
-class ManagerItemError<M extends Manager> extends ManagerError<M> {
+class ManagerItemError extends ManagerError {
 
-    item?: ManagerItem<M>;
+    item?: any;
 
-    constructor(data: ProcessErrorData, manager: M, item?: ManagerItem<M>) {
+    constructor(data: ProcessErrorData, manager?: any, item?: any) {
         try {
             super(data, manager);
 
@@ -56,113 +56,160 @@ class ManagerItemError<M extends Manager> extends ManagerError<M> {
     }
 }
 
-class ManagerItem<M extends Manager> extends ProcessObject {
+/// -------------------------------- ///
 
-    manager: M;
+// class ManagerModelError extends ManagerError {
+
+//     model?: any;
+
+//     constructor(data: ProcessErrorData, manager?: any, model?: any) {
+//         try {
+//             super(data, manager);
+
+//             this.model = model;
+
+//         } catch(err) { throw err; }
+//     }
+// }
+
+// type ManagerModels<M> = { [K in keyof M]: M[K] };
+// type ManagerModelNames<M> = keyof M;
+
+// class ManagerModelsHandler extends ProcessObject {
+
+//     manager: any;
+
+//     // protected models: ManagerModels = {};
+//     protected models: ManagerModels<unknown>;
+
+//     constructor(manager: any, models: ManagerModels<unknown>) {
+//         try {
+//             super();
+
+//             this.manager = manager;
+//             this.models = models;
+//             // this.models = models as ManagerModels<typeof models>;
+
+//             if (models) this.set(models);
+
+//         } catch(err) { throw err; }
+//     }
+
+//     get length() { return Object.keys(this.models).length; }
+
+//     get names() {
+//         try {
+//             const { models } = this;
+//             const keys = Object.keys(models);
+//             const names: Dict = {};
+
+//             for (const key of keys) names[key] = key;
+
+//             return names;
+
+//         } catch(err) { throw err; }
+//     }
+
+//     get(name: keyof this[`names`]) {
+//         try {
+//             const { models } = this;
+
+//             return models[name] as typeof models[`name`];
+//             // const { models } = this;
+
+//             // const finder = typeof name !== `function`
+//             //     ? (item: any) => (item as any).name == name
+//             //     : name;
+
+//             // return models.find(finder);
+
+//         } catch(err) { throw err; }
+//     }
+
+//     getMany(...names: Array<string>) {
+//         try {
+//             const { models } = this;
+//             const { length: len } = names;
+
+//             if (len == 0) return models;
+
+//             const results: ManagerModels = {};
+
+//             for (const name of names) {
+//                 results[name] = models[name];
+//             }
+
+//             return results;
+//             // const { models } = this;
+
+//             // const finder = typeof name !== `function`
+//             //     ? (item: any) => (item as any).name == name
+//             //     : name;
+
+//             // return models.find(finder);
+
+//         } catch(err) { throw err; }
+//     }
     
-    constructor(manager: M, kwargs: ManagerItemKwargs<M, any>) {
-        try {
-            super();
+//     set<M>(models: ManagerModels<M>) {
+//         try {
+//             const { models: mdls, manager } = this;
+//             const names = Object.keys(models);
 
-            const { pkey } = manager;
+//             for (const name in models) {
+//                 const model = this.get(name);
 
-            // if (!(kwargs as any)[pkey]) {
-            //     const message = `Primary key "${pkey}" is undefined`;
+//                 if (!model) this.models[name] = models[name];
+//                 else {
+//                     const msg = `Model "${name}" already exists.`;
 
-            //     throw new ManagerItemError({ message }, manager);
-            // }
+//                     throw new ManagerModelError(msg, manager);
+//                 }
+//             }
 
-            // (this as any).manager = manager;
-            this.manager = manager;
+//         } catch(err) { throw err; }
+//     }
 
-            Object.defineProperty(this, 'manager', { value: manager, enumerable: false });
+//     // fetch(...names: Array<string> | [ $Array.Matcher<any> ]) {
+//     //     try {
+//     //         const { models } = this;
+//     //         const { length: len } = names;
 
-            (this as any)[pkey] = (kwargs as any)[pkey];
+//     //         if (len == 0) return models;
 
-        } catch(err) { throw err; }
-    }
+//     //         if (len == 1 && typeof names[0] == `function`) {
+//     //             return models.filter(names[0]);
+//     //         }
 
-}
+//     //         const matcher = (item: any) => {
+//     //             const finder = (name: string) => name == (item as any).name;
+                
+//     //             return (names as Array<string>).find(finder);
+//     //         }
 
-/// -------------------------------- ///
+//     //         return models.filter(matcher);
 
-class ManagerModelsListError<M extends Manager> extends ListError<string, typeof ManagerItem> {
-
-    constructor(data: ProcessErrorData, list?: List<string, typeof ManagerItem>) {
-        try {
-            super(data, list);
-
-        } catch(err) { throw err; }
-    }
-}
-
-class ManagerModelsList<M extends Manager> extends List<string, typeof ManagerItem> {
-
-    manager: M;
-
-    constructor(manager: M) {
-        try {
-            super();
-
-            this.manager = manager;
-
-        } catch(err) { throw err; }
-    }
-
-    protected get models() { return this.list; }
-
-    get object() {
-        try {
-            const { values: models } = this;
-            const result: Global.Dict = {};
-
-            for (const model of models) {
-                result[model.name] = model;
-            }
-
-            return result;
-
-        } catch(err) { throw err; }
-    }
-
-    get primary() {
-        try {
-            const { first } = this;
-
-            return (first ?? [])[1];
-
-        } catch(err) { throw err; }
-    }
-
-    add(...models: Array<typeof ManagerItem> | Array<[ string, typeof ManagerItem ]>) {
-        try {
-            models = models as Array<typeof ManagerItem>;
-
-            for (const model of models) {
-                super.add([ model.name, model ]);
-            }
-
-        } catch(err) { throw err; }
-    }
-}
+//     //     } catch(err) { throw err; }
+//     // }
+// }
 
 /// -------------------------------- ///
 
-class ManagerItemsListError<M extends Manager> extends ListError<string, ManagerItem<M>> {
+class ManagerItemsListError extends ManagerError {
 
-    constructor(data: ProcessErrorData, list?: List<string, ManagerItem<M>>) {
+    constructor(data: ProcessErrorData, manager?: any) {
         try {
-            super(data, list);
+            super(data, manager);
 
         } catch(err) { throw err; }
     }
 }
 
-class ManagerItemsList<M extends Manager> extends List<string, ManagerItem<M>> {
+class ManagerItemsHandler<PKT extends string | number, Models> extends List<PKT, Extract<Models, keyof Models>> {
 
-    manager: M;
+    manager: any;
 
-    constructor(manager: M) {
+    constructor(manager: any) {
         try {
             super();
 
@@ -173,73 +220,86 @@ class ManagerItemsList<M extends Manager> extends List<string, ManagerItem<M>> {
 
     /// -------------------------------- ///
 
-    protected get models() { return this.list; }
+    protected get items() { return this.list; }
 }
 
 /// -------------------------------- ///
+
+
+/// -------------------------------- ///
+
+type ManagerModels<M extends Manager<any>> = $Iterables.Values<M[`models`][ManagerModelNames<M>][]>;
+type ManagerModelNames<M extends Manager<any>> = keyof M[`models`];
+
+type ManagerModel<M extends Manager<any>, N extends ManagerModelNames<M>> = M[`models`][N];
+type ManagerModelParameters<M extends Manager<any>, N extends ManagerModelNames<M>> = ConstructorParameters<ManagerModel<M, N>>
+type ManagerModelCreation<M extends Manager<any>, N extends ManagerModelNames<M>> = [ N, ...ManagerModelParameters<M, N> ];
 
 type ManagerOptions = {
-    pkey?: string;
-    models: Array<any>;
+    name?: string;
+    indexer: [ string, any ];
 }
 
-class Manager extends ProcessObject {
+class Manager<Models> extends ProcessObject {
 
-    pkey!: string;
+    protected items: ManagerItemsHandler<this[`indexer`][0], Models>;
 
-    protected models: ManagerModelsList<this> = new ManagerModelsList(this);
-    protected items: ManagerItemsList<this> = new ManagerItemsList(this);
+    models: Models;
+    indexer: [ string, any ];
+    name: string;
 
-    constructor(options: ManagerOptions) {
+    constructor(models: Models, indexer: [ string, any ], name?: string) {
         try {
             super();
 
-            const { pkey, models } = options;
-
-            if (pkey) this.pkey = pkey;
-
-            this.models.add(...models);
-
-            if (this.pkey === undefined) {
-                const message = 'Manager item primary key is undefined';
-
-                throw new ManagerError({ manager: this, message });
+            if (Object.keys(models as any).length == 0) {
+                throw new ManagerError(`No any defined model`, this);
             }
 
-            if (Object.keys(this.models).length === 0) {
-                const message = 'No any defined model';
+            name ??= this.maker.name as string;
+            
+            this.models = models;
 
-                throw new ManagerError({ manager: this, message });
-            }
+            this.indexer = indexer;
+            this.name = name.toLowerCase();
+
+            this.items = new ManagerItemsHandler(this);
 
         } catch(err) { throw err; }
     }
 
     /// -------------------------------- ///
 
-    async create<N extends keyof ManagerModels<this>>(modelName: N, kwargs: ManagerItemKwargs<this, N>) {
+    async create<N extends ManagerModelNames<this>>(...args: [ N , ...ManagerModelParameters<this, N> ]) {
         try {
-            const { models, items } = this;
+            const { models, indexer: [ ikey, ivalue ] } = this;
 
-            const name = modelName ?? models.primary?.name;
+            const [ modelName, ...rest ] = args;
+            const value = rest?.[0];
 
-            if (!name) {
-                const message = `No model name provided`;
+            const maker = (models as any)[(modelName as string)];
 
-                throw new ManagerError({ manager: this, message });
+            if (value == undefined) {
+                const message = `Undefined indexer ${ikey}`;
+
+                throw new ManagerItemError({ manager: this, message });
             }
 
-            const maker = models.get(name as string);
+            if (typeof value !== typeof ivalue) {
+                const message = `Invalid indexer value type`;
 
-            if (!maker) {
-                const message = name === undefined
-                    ? `No any defined model`
-                    : `Invalid model name "${name as string}"`;
-
-                throw new ManagerError({ manager: this, message });
+                throw new ManagerItemError({ manager: this, message });
             }
 
-            return new maker(this, kwargs);
+            const inst = new (maker as any)(...rest);
+
+            Object.defineProperty(inst, this.name, { value: this });
+
+            if (typeof (inst as any).init == `function`) {
+                await (inst as any).init();
+            }
+
+            return inst;
 
             // const [ pkey, ptype ] = primary;
             // const prim = (kwargs ?? {})[pkey];
@@ -276,7 +336,10 @@ class Manager extends ProcessObject {
 export {
     Manager, ManagerError, type ManagerOptions,
 
-    ManagerItem, ManagerItemError,
+    ManagerItemError,
+
+    type ManagerModels, type ManagerModelNames,
+    type ManagerModel, type ManagerModelParameters, type ManagerModelCreation
 
     // ManagerError, ManagerErrorData,
     // ManagerItemError, DuplicateItemError,

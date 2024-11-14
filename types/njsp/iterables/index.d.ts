@@ -17,16 +17,20 @@ declare namespace Global.Iterables {
 }
 
 namespace Global.Iterables.Array {
-    type Values<T extends Array<infer VT>> = VT;
+    type Values<A extends any[]> = A extends (infer T)[] ? T : never;
 
     type Callback<OT, RT = any> = (object: OT, index?: number, array?: Array<OT>) => RT;
     type Matcher<OT> = (...args: Parameters<Callback<OT>>) => boolean;
     type Mapper<OT, RT = any> = (...args: Parameters<Callback<OT>>) => RT;
+
+    type Push<T extends any[], V> = [ ...T, V ];
 }
 
 namespace Global.Iterables.Map {
-    type Values<M extends Map<any, infer VT>> = VT; 
-    type Keys<M extends Map<infer KT, any>> = KT; 
+    type Values<M extends Map<any, any>> = M extends Map<any, infer T> ? T : never; 
+    type Keys<M extends Map<any, any>> = M extends Map<infer K, any> ? K : never; 
 
-    type KeyValues<M extends Map<infer KT, infer VT>> = { key: KT, value: VT };
+    type KeyValues<M extends Map<any, any>> = M extends Map<infer K, infer V>
+        ? { key: K, value: V }
+        : never;
 }
