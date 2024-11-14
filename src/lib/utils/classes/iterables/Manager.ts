@@ -232,6 +232,8 @@ type ManagerModels<M extends Manager<any>> = $Iterables.Values<M[`models`][Manag
 type ManagerModelNames<M extends Manager<any>> = keyof M[`models`];
 
 type ManagerModel<M extends Manager<any>, N extends ManagerModelNames<M>> = M[`models`][N];
+type ManagerModelInstance<M extends Manager<any>, N extends ManagerModelNames<M>> = InstanceType<ManagerModel<M, N>>;
+
 type ManagerModelParameters<M extends Manager<any>, N extends ManagerModelNames<M>> = ConstructorParameters<ManagerModel<M, N>>
 type ManagerModelCreation<M extends Manager<any>, N extends ManagerModelNames<M>> = [ N, ...ManagerModelParameters<M, N> ];
 
@@ -270,27 +272,13 @@ class Manager<Models> extends ProcessObject {
 
     /// -------------------------------- ///
 
-    async create<N extends ManagerModelNames<this>>(...args: [ N , ...ManagerModelParameters<this, N> ]) {
+    async create<N extends ManagerModelNames<this>>(...args: [ N, ...ManagerModelParameters<this, N> ]) {
         try {
             const { models, indexer: [ ikey, ivalue ] } = this;
 
             const [ modelName, ...rest ] = args;
-            const value = rest?.[0];
 
             const maker = (models as any)[(modelName as string)];
-
-            if (value == undefined) {
-                const message = `Undefined indexer ${ikey}`;
-
-                throw new ManagerItemError({ manager: this, message });
-            }
-
-            if (typeof value !== typeof ivalue) {
-                const message = `Invalid indexer value type`;
-
-                throw new ManagerItemError({ manager: this, message });
-            }
-
             const inst = new (maker as any)(...rest);
 
             Object.defineProperty(inst, this.name, { value: this });
@@ -299,7 +287,21 @@ class Manager<Models> extends ProcessObject {
                 await (inst as any).init();
             }
 
-            return inst;
+            const index = (inst as any)[ikey];
+
+            if (index == undefined) {
+                const message = `Undefined indexer ${ikey}`;
+
+                throw new ManagerItemError(message, this);
+            }
+
+            if (typeof index !== typeof ivalue) {
+                const message = `Invalid indexer value type`;
+
+                throw new ManagerItemError(message, this);
+            }
+
+            return inst as ManagerModelInstance<typeof this, N>;
 
             // const [ pkey, ptype ] = primary;
             // const prim = (kwargs ?? {})[pkey];
@@ -339,7 +341,8 @@ export {
     ManagerItemError,
 
     type ManagerModels, type ManagerModelNames,
-    type ManagerModel, type ManagerModelParameters, type ManagerModelCreation
+    type ManagerModel, type ManagerModelInstance,
+    type ManagerModelParameters, type ManagerModelCreation
 
     // ManagerError, ManagerErrorData,
     // ManagerItemError, DuplicateItemError,
