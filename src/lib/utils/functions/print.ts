@@ -39,6 +39,28 @@ Print.br = (count: number | any | any[] = 1) => {
     } catch(err) { throw err; }
 }
 
+Print.titled = (title: string, ...lines: any[]) => {
+    try {
+        title = paint(title, 'yellow');
+
+        const [ colon ] = mark('colons');
+
+        title = `${title} ${colon} `;
+
+        Print(title);
+
+        if (lines.length === 0) return Print;
+
+        // if (lines.length == 2) console.log(lines[1]);
+        // else console.log(...lines);
+
+        console.log(...lines);
+
+        return Print;
+
+    } catch(err) { throw err; }
+}
+
 Print.show = (title: string, ...lines: any[]) => {
     try {
         title = paint(title, 'yellow');
@@ -47,7 +69,7 @@ Print.show = (title: string, ...lines: any[]) => {
 
         console.log(now(), `${title} ${colon} `);
 
-        lines.push('');
+        if (lines.length === 0) return Print;
 
         for (const line of lines) console.log(line);
 

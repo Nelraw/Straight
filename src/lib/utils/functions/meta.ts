@@ -39,8 +39,8 @@ function isConstructor(object: any) {
 }
 
 function getConstructor(object: any) {
-    if (object == undefined) return Undefined;
-    if (object == null) return Null;
+    if (object === undefined) return Undefined;
+    if (object === null) return Null;
 
     if (isConstructor(object)) return object;
 
@@ -48,12 +48,15 @@ function getConstructor(object: any) {
 }
 
 function getConstructorParent(object: any) {
-    if (object == undefined) return Undefined;
-    if (object == null) return Null;
+    if (object == undefined) return Nullish;
+    // if (object === null) return Nullish;
 
     const type = getConstructor(object);
+    const parent = Object.getPrototypeOf(type);
 
-    return Object.getPrototypeOf(type);
+    if (parent?.name == ``) return Object;
+
+    return parent;
 }
 
 function isPrimitive(object: any, strict: boolean = false) {
@@ -79,7 +82,7 @@ function isPrimitive(object: any, strict: boolean = false) {
 
 function familyOf(object: any) {
     const type = getConstructor(object);
-    const family = [ type ];
+    const family = [ type as typeof type ];
 
     if (type === Object) return family;
 
@@ -89,7 +92,7 @@ function familyOf(object: any) {
         const skip = parent == Object || parent?.name == '';
         if (parent == null || skip) break;
 
-        family.push(parent);
+        family.push(parent as typeof parent);
 
         parent = Object.getPrototypeOf(parent);
     }
@@ -101,16 +104,30 @@ function familyOf(object: any) {
 
 function elderOf(object: any) {
     const family = familyOf(object);
+    const { length: len } = family;
 
-    return family[family.length - 2];
+    const elder = family[len - 2];
+
+    if (elder?.name == `Error`) {
+        const ancestor = family[len - 3];
+
+        if (ancestor?.name == `ProcessError`) {
+            return family[len - 4];
+        }
+    }
+
+    return elder;
 }
 
 function childOf(object: any, query: any) {
+    let finder = (type: any) => type.name == query;
     const family = familyOf(object);
 
-    const finder = typeof query == 'string'
-        ? (type: any) => type?.name === query
-        : (type: any) => type === query;
+    if (typeof query !== `string`) {
+        query = getConstructor(query);
+
+        finder = (type: any) => type == query
+    }
 
     return family.find(finder);
 }
@@ -120,11 +137,11 @@ function typeOf(object: any, query?: any) {
 
     if (query === undefined) return type;
 
-    if (typeof query === 'string') {
+    if (typeof query === `string`) {
         return type?.name === query ? type : undefined;
     }
 
-    return type === getConstructor(query) ? type : undefined;
+    return type == getConstructor(query) ? type : undefined;
 }
 
 function makerOf(object: any) { return typeOf(object); }
@@ -148,9 +165,102 @@ async function superInit(object: any, ...iargs: any[]) {
 
 /// -------------------------------- ///
 
+class Meta {
+
+    /// -------------------------------- ///
+
+    raw: any;
+    object: any;
+
+    /// -------------------------------- ///
+
+    constructor(object: any) {
+        try {
+            this.raw = object;
+
+            if (object === undefined) object = new Undefined();
+            if (object === null) object = new Null();
+
+            this.object = object;
+
+        } catch(err) { throw err; }
+    }
+
+    /// -------------------------------- ///
+
+    get type() {
+        try { return getConstructor(this.object); }
+        catch(err) { throw err; }
+    }
+
+    get name() {
+        try { return getConstructor(this.object).name; }
+        catch(err) { throw err; }
+    }
+
+    get parent() {
+        try { return getConstructorParent(this.object); }
+        catch(err) { throw err; }
+    }
+
+    get family() {
+        try { return familyOf(this.object); }
+        catch(err) { throw err; }
+    }
+
+    get elder() {
+        try { return elderOf(this.object); }
+        catch(err) { throw err; }
+    }
+
+    get primitive() {
+        try { return isPrimitive(this.object); }
+        catch(err) { throw err; }
+    }
+
+    get nullish() {
+        try {
+            const { raw } = this;
+
+            return raw == undefined || raw == null;
+
+        } catch(err) { throw err; }
+    }
+
+    get falsy() {
+        try {
+            const { raw } = this;
+
+            return raw == false
+                || raw == undefined
+                || raw == null;
+
+        } catch(err) { throw err; }
+    }
+
+    get truthy() {
+        try {
+            const { raw } = this;
+
+            return !!raw;
+
+        } catch(err) { throw err; }
+    }
+
+    childOf(query: any) {
+        try {
+            return childOf(this.object, query);
+
+        } catch(err) { throw err; }
+    }
+}
+
+/// -------------------------------- ///
+
 export {
     Nullish, Undefined, Null,
     
+    Meta,
     isPrimitive, isConstructor, getConstructor, getConstructorParent,
     makerOf, typeOf, childOf, familyOf, elderOf, superInit,
 }

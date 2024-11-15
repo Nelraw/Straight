@@ -13,14 +13,14 @@ type Matcher<T> = Global.Iterables.Array.Matcher<T>;
 
 class ListError<K extends string | number, O> extends ProcessError {
 
-    list?: List<K, O>;
+    // list?: List<K, O>;
 
     constructor(data: ProcessErrorData, list?: List<K, O>) {
         try {
             super(data);
 
-            this.list = list;
-            this.source = { object: list };
+            Object.defineProperty(this, `list`, { value: list });
+            // this.source = { object: list };
 
         } catch(err) { throw err; }
     }
@@ -28,7 +28,18 @@ class ListError<K extends string | number, O> extends ProcessError {
     /// -------------------------------- ///
 }
 
-// type ListEntry<K extends string, O extends object> = Parameters<(key: K, object: O) => void>;
+class DuplicateListItemError<K extends string | number, O> extends ListError<K, O> {
+
+    constructor(index: K, list?: List<K, O>) {
+        try {
+            const message = `Try to duplicate item (index: "${index}")`;
+
+            super(message, list);
+
+        } catch(err) { throw err; }
+    }
+}
+
 type ListEntry<K extends string | number, O> = [ K, O ];
 type ListEntries<K extends string | number, O> = Array<ListEntry<K, O>>;
 
@@ -100,9 +111,7 @@ class List<K extends string | number, O> extends ProcessObject {
     set(key: K, value: O): [ K, O ] {
         try {
             if (this.list.has(key)) {
-                const message = `Key "${key}" already exists`;
-
-                throw new ListError({ message }, this);
+                throw new DuplicateListItemError(key, this);
             }
 
             this.list.set(key, value);

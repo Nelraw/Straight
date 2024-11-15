@@ -5,7 +5,7 @@ import { readFileSync } from 'fs';
 
 /// -------------------------------- ///
 
-import { makerOf } from '../utils/functions/meta.js';
+import { Meta, getConstructor } from '../utils/functions/meta.js';
 
 /// -------------------------------- ///
 
@@ -35,13 +35,15 @@ type ProcessOptions = $Process.ProcessOptions;
 
 class ProcessError extends Error {
 
+    // _meta!: Meta;
+
     declare name: string;
 
-    code: number;
-    reason: string;
-    details: string;
+    // code: number;
+    // reason: string;
+    // details: string;
 
-    source?: { object?: object, error?: Error };
+    // source?: { object?: object, error?: Error };
 
     constructor(data: ProcessErrorData) {
         try {
@@ -56,31 +58,62 @@ class ProcessError extends Error {
             const { name, code, reason, details } = data;
 
             if (name) this.name = name;
-            else makerOf(this).name;
+            else getConstructor(this).name;
     
-            this.code = code ?? -1;
-            this.reason = reason ?? `unknown`;
-            this.details = details ?? ``;
+            // this.code = code ?? -1;
+            // this.reason = reason ?? `unknown`;
+            // this.details = details ?? ``;
 
         } catch(err) { throw err; }
     }
 
     /// -------------------------------- ///
 
-    get maker() { return makerOf(this); }
+    get maker() { return getConstructor(this); }
+
+    get meta() {
+        const { _meta } = this as any;
+        if (_meta) return _meta;
+
+        const meta = new Meta(this);
+
+        Object.defineProperty(this, '_meta', { value: meta });
+
+        return meta;
+    }
 }
 
 class ProcessObject {
+
+    // _meta!: Meta;
 
     constructor() {
         try {
 
         } catch(err) { throw err; }
     }
+    
+    async init(...args: any[]) {
+        try {
+            return this;
+
+        } catch(err) { throw err; }
+    }
 
     /// -------------------------------- ///
 
-    get maker() { return makerOf(this); }
+    get maker() { return getConstructor(this); }
+    
+    get meta() {
+        const { _meta } = this as any;
+        if (_meta) return _meta;
+
+        const meta = new Meta(this);
+
+        Object.defineProperty(this, '_meta', { value: meta });
+
+        return meta;
+    }
 }
 
 /// -------------------------------- ///

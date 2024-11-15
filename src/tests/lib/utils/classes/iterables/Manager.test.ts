@@ -9,41 +9,34 @@ import { Print } from '../../../../../lib/utils/functions/print.js';
 // } from '../../../../../lib/utils/classes/iterables/Manager.js';
 
 
-import * as $List from '../../../../../lib/utils/classes/iterables/List.js';
 import * as $Manager from '../../../../../lib/utils/classes/iterables/Manager.js';
 
 import { ProcessObject } from '../../../../../lib/njsp/Process.js';
 
-// class MoneyFlowError<M extends $Manager.Manager> extends $Manager.ManagerItemError {
-
-//     static manager: $Manager.Manager;
-
-//     /// -------------------------------- ///
-
-//     constructor(data: Global.Error.ErrorData, manager: M) {
-//         try {
-//             super(data, manager);
-
-//         } catch(err) { throw err; }
-//     }
-
-//     /// -------------------------------- ///
-
-// }
-
-type MoneyFlowKwargs = { label: string; amount: number; };
-
 class MoneyFlow extends ProcessObject {
 
-    declare label: string;
-    declare amount: number;
+    // wallet!: Wallet;
+
+    label!: string;
+    amount: number;
 
     constructor(label: string, amount: number) {
         try {
             super();
 
-            this.label = label;
+            // this.label = label;
             this.amount = amount;
+
+        } catch(err) { throw err; }
+    }
+
+    async init(...args: [ label: string ]) {
+        try {
+            const [ label ] = args;
+
+            this.label = label;
+
+            return this;
 
         } catch(err) { throw err; }
     }
@@ -51,7 +44,10 @@ class MoneyFlow extends ProcessObject {
 
 class Incoming extends MoneyFlow {
 
-    label: string = '';
+    // wallet!: Wallet;
+
+    declare label: string;
+    declare amount: number;
 
     constructor(label: string, amount: number) {
         try {
@@ -63,6 +59,11 @@ class Incoming extends MoneyFlow {
 
 class Outcoming extends MoneyFlow {
 
+    // wallet!: Wallet;
+
+    declare label: string;
+    declare amount: number;
+
     constructor(label: string, amount: number) {
         try {
             super(label, amount * -1);
@@ -72,6 +73,11 @@ class Outcoming extends MoneyFlow {
 }
 
 class Waste extends Outcoming {
+
+    // wallet!: Wallet;
+
+    declare label: string;
+    declare amount: number;
 
     lost?: number;
 
@@ -87,6 +93,8 @@ class Waste extends Outcoming {
     }
 }
 
+/// -------------------------------- ///
+
 const models = { MoneyFlow, Incoming, Outcoming, Waste };
 
 class Wallet extends $Manager.Manager<typeof models> {
@@ -99,63 +107,56 @@ class Wallet extends $Manager.Manager<typeof models> {
     }
 }
 
+/// -------------------------------- ///
+
 async function test() {
     try {
         const wallet = new Wallet();
 
-        type Names = $Manager.ManagerModelNames<typeof wallet>;
+        const aah = await wallet.create(`Incoming`, `AAH`, 1016.05);
+        const cbd = await wallet.create(`Outcoming`, `CBD`, 20);
+        const tabac = await wallet.create(`Waste`, `Tabac`, 17.4, 2.6);
 
-        const model = `Outcoming`;
-        // const outcoming = await wallet.create<`${typeof model}`>('Outcoming', 'out', 100);
-        const outcoming = await wallet.create('Outcoming', 'out', 100);
+        Print.titled(`Wallet`, wallet).br();
 
-        Print(outcoming).br(2);
+        for (const flow of [ aah, cbd, tabac ]) {
+            const { label, amount, lost, meta } = flow as any;
 
-        const wasted = await wallet.create('Waste', 'wasted', 100, 50);
-        // const wasted = await wallet.create<`Waste`>('Waste', 'wasted', 100, 50);
+            let lostStr = meta.name == `Waste` && lost ? `\n → Lost: ${lost}€` : ``;
 
-        Print(wasted).br(2);
+            Print.titled(`${meta.name}: "${label}"`, ` → Amount: ${amount}€`, lostStr);
+            Print.br();
+        }
 
-        // Print(wallet.getModel(`Waste`))
-        const got = wallet.getModel(`Waste`);
-        Print(got)
+        async function duplicate() {
+            const cbd2 = await wallet.create(`Outcoming`, `CBD`, 12.9);	// Error: Duplicate key
+            const { label, amount, lost, meta } = cbd2 as any;
+            let lostStr = meta.name == `Waste` && lost ? `\n → Lost: ${lost}€` : ``;
+            Print.titled(`${meta.name}: "${label}"`, ` → Amount: ${amount}€`, lostStr);
+            Print.br();
+        }
 
-        // type Names = $Manager.ManagerModelNames<typeof wallet>;
-        // type Models = $Manager.ManagerModels<typeof wallet>;
+        const got = wallet.find((n: any) => n.label == `CBD`);
+        Print(got?.label).br();
 
-        // type Out = $Manager.ManagerModel<typeof wallet, `Outcoming`>;
-        // type Args = $Manager.ManagerModelParameters<typeof wallet, `Outcoming`>
+        const [ CBD, Zebi, AAH ] = wallet.fetch(`CBD`, `Zebi`, `AAH`);
+
+        Print(CBD?.amount)
+        Print(AAH?.amount).br();
+        Print(Zebi?.amount).br();
+
+        // for (const flow of wallet) {
+        //     const { label, amount, lost, meta } = flow as any;
+
+        //     let lostStr = meta.name == `Waste` && lost ? `\n → Lost: ${lost}€` : ``;
+
+        //     Print.titled(`${meta.name}: "${label}"`, ` → Amount: ${amount}€`, lostStr);
+        //     Print.br();
+        // }
 
     } catch(err) { throw err; }
 }
 
-// async function testing() {
-//     try {
-        
-//         const options: HandlerOptions = {
-//             items: [ Item, TestItem, TryItem, TestingItem ]
-//         }
-        
-//         const handler = new Handler(options);
+/// -------------------------------- ///
 
-//         type X = keyof (typeof handler.items.object);
-//         type Y = typeof handler.items.names;
-        
-//         Print(handler).br();
-        
-//         const item = await handler.create<`Item`>(`Item`, { id: 'zob', bits: 64 });
-
-//         Print(item).br();
-
-//         type Kwargs = ConstructorParameters<typeof TestItem>[1]
-
-//         const testItem = await handler.create<`TestItem`>(`TestItem`, { id: 'zob', bits: 64 });
-
-//         Print(testItem).br();
-
-//     } catch(err) { throw err; }
-// }
-
-
-export { test }//, MoneyFlow, Incoming, Outcoming, Waste, Wallet }
-// export { test, MoneyFlow, Incoming, Outcoming, Waste, Wallet }
+export { test }

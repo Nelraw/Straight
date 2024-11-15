@@ -57,143 +57,6 @@ class ManagerItemError extends ManagerError {
 
 /// -------------------------------- ///
 
-// class ManagerModelError extends ManagerError {
-
-//     model?: any;
-
-//     constructor(data: ProcessErrorData, manager?: any, model?: any) {
-//         try {
-//             super(data, manager);
-
-//             this.model = model;
-
-//         } catch(err) { throw err; }
-//     }
-// }
-
-// type ManagerModels<M> = { [K in keyof M]: M[K] };
-// type ManagerModelNames<M> = keyof M;
-
-// class ManagerModelsHandler extends ProcessObject {
-
-//     manager: any;
-
-//     // protected models: ManagerModels = {};
-//     protected models: ManagerModels<unknown>;
-
-//     constructor(manager: any, models: ManagerModels<unknown>) {
-//         try {
-//             super();
-
-//             this.manager = manager;
-//             this.models = models;
-//             // this.models = models as ManagerModels<typeof models>;
-
-//             if (models) this.set(models);
-
-//         } catch(err) { throw err; }
-//     }
-
-//     get length() { return Object.keys(this.models).length; }
-
-//     get names() {
-//         try {
-//             const { models } = this;
-//             const keys = Object.keys(models);
-//             const names: Dict = {};
-
-//             for (const key of keys) names[key] = key;
-
-//             return names;
-
-//         } catch(err) { throw err; }
-//     }
-
-//     get(name: keyof this[`names`]) {
-//         try {
-//             const { models } = this;
-
-//             return models[name] as typeof models[`name`];
-//             // const { models } = this;
-
-//             // const finder = typeof name !== `function`
-//             //     ? (item: any) => (item as any).name == name
-//             //     : name;
-
-//             // return models.find(finder);
-
-//         } catch(err) { throw err; }
-//     }
-
-//     getMany(...names: Array<string>) {
-//         try {
-//             const { models } = this;
-//             const { length: len } = names;
-
-//             if (len == 0) return models;
-
-//             const results: ManagerModels = {};
-
-//             for (const name of names) {
-//                 results[name] = models[name];
-//             }
-
-//             return results;
-//             // const { models } = this;
-
-//             // const finder = typeof name !== `function`
-//             //     ? (item: any) => (item as any).name == name
-//             //     : name;
-
-//             // return models.find(finder);
-
-//         } catch(err) { throw err; }
-//     }
-    
-//     set<M>(models: ManagerModels<M>) {
-//         try {
-//             const { models: mdls, manager } = this;
-//             const names = Object.keys(models);
-
-//             for (const name in models) {
-//                 const model = this.get(name);
-
-//                 if (!model) this.models[name] = models[name];
-//                 else {
-//                     const msg = `Model "${name}" already exists.`;
-
-//                     throw new ManagerModelError(msg, manager);
-//                 }
-//             }
-
-//         } catch(err) { throw err; }
-//     }
-
-//     // fetch(...names: Array<string> | [ $Array.Matcher<any> ]) {
-//     //     try {
-//     //         const { models } = this;
-//     //         const { length: len } = names;
-
-//     //         if (len == 0) return models;
-
-//     //         if (len == 1 && typeof names[0] == `function`) {
-//     //             return models.filter(names[0]);
-//     //         }
-
-//     //         const matcher = (item: any) => {
-//     //             const finder = (name: string) => name == (item as any).name;
-                
-//     //             return (names as Array<string>).find(finder);
-//     //         }
-
-//     //         return models.filter(matcher);
-
-//     //     } catch(err) { throw err; }
-//     // }
-// }
-
-/// -------------------------------- ///
-
 class ManagerItemsListError extends ManagerError {
 
     constructor(data: ProcessErrorData, manager?: any) {
@@ -231,23 +94,19 @@ type ManagerModels<M extends Manager<any>> = $Iterables.Values<M[`models`][Manag
 type ManagerModelNames<M extends Manager<any>> = keyof M[`models`];
 
 type ManagerModel<M extends Manager<any>, N extends ManagerModelNames<M>> = M[`models`][N];
-type ManagerModelInstance<M extends Manager<any>, N extends ManagerModelNames<M>> = InstanceType<ManagerModel<M, N>>;
+type ManagerItem<M extends Manager<any>, N extends ManagerModelNames<M>> = InstanceType<ManagerModel<M, N>>;
 
 type ManagerModelParameters<M extends Manager<any>, N extends ManagerModelNames<M>> = ConstructorParameters<ManagerModel<M, N>>
-// type ManagerModelCreation<M extends Manager<any>, N extends ManagerModelNames<M>> = [ N, ...ManagerModelParameters<M, N> ];
 
-// type ManagerModelCreation<M extends Manager<any>, N extends ManagerModelNames<M>> = Extract<ManagerModelNames<M>, N> extends infer Name
-//     ? [ Name, ...ManagerModelParameters<M, N> ]
-//     : never;
+type ManagerModelCreation<M extends Manager<any>, N extends ManagerModelNames<M>> = [ N, ...ManagerModelParameters<M, N> ];
 
-type ManagerModelCreation<M extends Manager<any>, N extends ManagerModelNames<M>> = [ N, ...ManagerModelParameters<M, N> ]
-
-type ManagerOptions = {
-    name?: string;
-    indexer: [ string, any ];
-}
+type ManagerMatcher<M extends Manager<any>, N extends ManagerModelNames<M>> = (item: ManagerItem<M, N>, i?: number, arr?: ManagerItem<M, N>[]) => ManagerItem<M, N> | undefined;
+type ManagerFinder<M extends Manager<any>, N extends ManagerModelNames<M>> = M[`indexer`][1] | ManagerMatcher<M, N>
+type ManagerFetcher<M extends Manager<any>, N extends ManagerModelNames<M>> = Array<M[`indexer`][1]> | [ ManagerMatcher<M, N> ];
 
 class Manager<Models> extends ProcessObject {
+
+    /// -------------------------------- ///
 
     protected items: ManagerItemsHandler<this[`indexer`][0], Models>;
 
@@ -263,17 +122,18 @@ class Manager<Models> extends ProcessObject {
                 throw new ManagerError(`No any defined model`, this);
             }
 
-            name ??= this.maker.name as string;
+            name ??= this.maker.name.replace(`Manager`) as string;
+
+            this.name = name.toLowerCase();
+            this.indexer = indexer;
 
             this.models = models;
-
-            this.indexer = indexer;
-            this.name = name.toLowerCase();
-
             this.items = new ManagerItemsHandler(this);
 
         } catch(err) { throw err; }
     }
+
+    /// -------------------------------- ///
 
     getModel<N extends ManagerModelNames<this>>(name: N) {
         try {
@@ -285,12 +145,61 @@ class Manager<Models> extends ProcessObject {
         } catch(err) { throw err; }
     }
 
-    /// -------------------------------- ///
+    find<N extends ManagerModelNames<this>>(index: ManagerFinder<this, N>) {
+        try {
+            const { items, indexer: [ ikey, ivalue ] } = this;
+
+            type Item = ManagerItem<this, N>;
+
+            if (typeof index === `function`) {
+                const values = items.values as Array<Item>;
+
+                return values.find(index);
+            }
+
+            if (typeof index !== typeof ivalue) {
+                throw new ManagerItemError(`Invalid indexer value type`, this);
+            }
+
+            const got = items.get(index);
+
+            if (got) return got as Item;
+
+        } catch(err) { throw err; }
+    }
+
+    fetch<N extends ManagerModelNames<this>>(...indexes: ManagerFetcher<this, N>) {
+        try {
+            const { items, indexer: [ ikey, ivalue ] } = this;
+
+            type Item = ManagerItem<this, N>;
+
+            if (typeof indexes[0] === `function`) {
+                const values = items.values as Item[];
+
+                return values.filter(indexes[0]);
+            }
+
+            const results: Array<Item | undefined> = [];
+
+            for (const index of indexes) {
+                if (typeof index !== typeof ivalue) {
+                    throw new ManagerItemError(`Invalid indexer value type`, this);
+                }
+
+                const got = this.find(index);
+
+                results.push(got);
+            }
+
+            return results;
+
+        } catch(err) { throw err; }
+    }
 
     async create<N extends ManagerModelNames<this>>(...args: [ N, ...ManagerModelParameters<this, N> ]) {
         try {
-            const { models, indexer: [ ikey, ivalue ] } = this;
-
+            const { items, indexer: [ ikey, ivalue ] } = this;
             const [ modelName, ...rest ] = args;
 
             const maker = this.getModel(modelName);
@@ -299,64 +208,43 @@ class Manager<Models> extends ProcessObject {
             Object.defineProperty(inst, this.name, { value: this });
 
             if (typeof (inst as any).init == `function`) {
-                await (inst as any).init();
+                await (async () => (inst as any).init(...rest))();
             }
 
             const index = (inst as any)[ikey];
 
-            if (index == undefined) {
-                const message = `Undefined indexer ${ikey}`;
-
-                throw new ManagerItemError(message, this);
-            }
-
             if (typeof index !== typeof ivalue) {
-                const message = `Invalid indexer value type`;
+                const message = index === undefined
+                    ? `Undefined indexer ${ikey}`
+                    : `Invalid indexer value type`;
 
                 throw new ManagerItemError(message, this);
             }
 
-            return inst as ManagerModelInstance<typeof this, N>;
+            items.set(index, inst);
 
-            // const [ pkey, ptype ] = primary;
-            // const prim = (kwargs ?? {})[pkey];
-
-            // if (!prim) {
-            //     const message = `Primary key "${pkey}" is undefined`;
-
-            //     throw new ManagerItemError({ manager: this, message });
-            // } else {
-            //     const callback = (i: ManagerItem) => (i as any)[pkey] === prim;
-
-            //     if (this.items.find(callback)) {
-            //         const message = `Item with primary key "${pkey}" already exists`;
-
-            //         throw new DuplicateItemError({ manager: this, message });
-            //     } else {
-            //         const types = [ makerOf(prim), makerOf(ptype) ];
-
-            //         if (!childOf(prim, primary[1])) {
-            //             const txt = `${types[0].name} instead of ${types[1].name}`;
-            //             const message = `Primary value "${pkey}" is ${txt}`;
-
-            //             throw new ManagerItemError({ manager: this, message });
-            //         }
-            //     }
-            // }
+            return inst as ManagerItem<typeof this, N>;
 
         } catch(err) { throw err; }
     }
+
+    // [Symbol.iterator]() {
+    //     try {
+    //         return this.items.values[Symbol.iterator]();
+
+    //     } catch(err) { throw err; }
+    // }
 }
 
 /// -------------------------------- ///
 
 export {
-    Manager, ManagerError, type ManagerOptions,
+    Manager, ManagerError,
 
     ManagerItemError,
 
     type ManagerModels, type ManagerModelNames,
-    type ManagerModel, type ManagerModelInstance,
+    type ManagerModel, type ManagerItem,
     type ManagerModelParameters, type ManagerModelCreation
 
     // ManagerError, ManagerErrorData,
