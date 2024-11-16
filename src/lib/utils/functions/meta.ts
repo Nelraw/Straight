@@ -14,6 +14,8 @@ class Nullish {
 class Null extends Nullish {}
 class Undefined extends Nullish {}
 
+const AsyncFunction = getConstructor(async function() {});
+
 /// -------------------------------- ///
 
 function isConstructor(object: any) {
@@ -68,7 +70,7 @@ function isPrimitive(object: any, strict: boolean = false) {
         
         const checker = (type: any) => {
             const finder = (cstr: any) => cstr === type;
-            const prim = [ String, Number, Boolean, Array, Function ];
+            const prim = [ String, Number, Boolean, Array, Function, AsyncFunction ];
 
             return prim.find(finder) ? true : false;
         }
@@ -259,6 +261,7 @@ class Meta {
 
 export {
     Nullish, Undefined, Null,
+    AsyncFunction,
     
     Meta,
     isPrimitive, isConstructor, getConstructor, getConstructorParent,

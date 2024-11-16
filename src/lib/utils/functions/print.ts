@@ -1,19 +1,55 @@
 
-import { now } from './time.js';
+import { today, clock, now } from './time.js';
 import { mark, paint } from './style.js';
 
 /// -------------------------------- ///
 
-function Print(...lines: any[]) {
+function Print(...objects: any[]) {
+    try {
+        if (objects.length === 0) return console.log(), Print;
+
+        console.log(...objects);
+
+        return Print;
+
+    } catch(err) { throw err; }
+}
+
+function log(...objects: any[]) {
+    try {
+        if (objects.length == 0) return console.log(), Print;
+
+        const time = clock();
+        console.log(...[ time, objects ]);
+
+        return Print;
+
+    } catch(err) { throw err; }
+}
+
+Print.log = log;
+
+Print.lines = (...lines: any[]) => {
     try {
         if (lines.length === 0) return console.log(), Print;
 
         for (const line of lines) {
-            const data = [];
+            console.log(line);
+        }
 
-            data.push(now(), line);
+        return Print;
 
-            console.log(...data);
+    } catch(err) { throw err; }
+}
+
+log.lines = (...lines: any[]) => {
+    try {
+        if (lines.length === 0) return console.log(), Print;
+
+        const time = clock();
+
+        for (const line of lines) {
+            console.log(...[ time, line ]);
         }
 
         return Print;
@@ -39,39 +75,72 @@ Print.br = (count: number | any | any[] = 1) => {
     } catch(err) { throw err; }
 }
 
+const getTitle = (title: string, time?: `date` | `clock` | true) => {
+    try {
+        const [ colons ] = mark('colons');
+        title = `${paint(title, 'yellow')} ${colons}`;
+
+        if (time == undefined) return title;
+        else {
+            if (time == true) return `${now()} ${title}`;
+            
+            time = time == `date` ? today() : clock() as any;
+
+            return `${time} ${title}`;
+        }
+
+    } catch(err) { throw err; }
+}
+
+Print.title = (title: string, time?: `date` | `clock` | true) => {
+    try {
+        title = getTitle(title, time);
+
+        return console.log(title), Print;
+
+    } catch(err) { throw err; }
+}
+
 Print.titled = (title: string, ...lines: any[]) => {
     try {
-        title = paint(title, 'yellow');
+        title = getTitle(title);
 
-        const [ colon ] = mark('colons');
+        if (lines.length == 0) return console.log(title), Print;
 
-        title = `${title} ${colon} `;
+        return console.log(...[ title, ...lines ]), Print;
 
-        Print(title);
+    } catch(err) { throw err; }
+}
 
-        if (lines.length === 0) return Print;
+log.titled = (title: string, ...lines: any[]) => {
+    try {
+        Print.title(title, `clock`);
 
-        // if (lines.length == 2) console.log(lines[1]);
-        // else console.log(...lines);
+        if (lines.length == 0) return Print;
 
-        console.log(...lines);
-
-        return Print;
+        return log(...lines), Print;
 
     } catch(err) { throw err; }
 }
 
 Print.show = (title: string, ...lines: any[]) => {
     try {
-        title = paint(title, 'yellow');
-
-        const [ colon ] = mark('colons');
-
-        console.log(now(), `${title} ${colon} `);
-
+        Print.title(title);
         if (lines.length === 0) return Print;
 
-        for (const line of lines) console.log(line);
+        Print.lines(...lines);
+
+        return Print;
+
+    } catch(err) { throw err; }
+}
+
+log.show = (title: string, ...lines: any[]) => {
+    try {
+        Print.title(title, `clock`);
+        if (lines.length === 0) return Print;
+
+        log.lines(...lines);
 
         return Print;
 

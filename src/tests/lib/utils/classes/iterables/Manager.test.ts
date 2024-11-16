@@ -1,17 +1,8 @@
 
-// import { njsp, ProcessObject, ProcessError } from '../../../../../lib/core/njsp.js';
-
-import { Print } from '../../../../../lib/utils/functions/print.js';
-
-// import {
-//     Manager, ManagerError, type ManagerOptions,
-//     ManagerItem, ManagerItemError,
-// } from '../../../../../lib/utils/classes/iterables/Manager.js';
-
-
+import { njsp, Print, ProcessObject, ProcessError } from '../../../../../lib/njsp/njsp.js';
 import * as $Manager from '../../../../../lib/utils/classes/iterables/Manager.js';
 
-import { ProcessObject } from '../../../../../lib/njsp/Process.js';
+/// -------------------------------- ///
 
 class MoneyFlow extends ProcessObject {
 
@@ -136,14 +127,15 @@ async function test() {
             Print.br();
         }
 
-        const got = wallet.find((n: any) => n.label == `CBD`);
+        // const got = wallet.find((n: any) => n.label == `CBD`);
+        const got = await wallet.search(async (n: any) => n.label == `CBD`);
         Print(got?.label).br();
 
         const [ CBD, Zebi, AAH ] = wallet.fetch(`CBD`, `Zebi`, `AAH`);
 
-        Print(CBD?.amount)
-        Print(AAH?.amount).br();
-        Print(Zebi?.amount).br();
+        Print(CBD?.label)
+        Print(AAH?.label).br();
+        Print(Zebi?.label).br();
 
         // for (const flow of wallet) {
         //     const { label, amount, lost, meta } = flow as any;

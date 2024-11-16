@@ -20,8 +20,24 @@ namespace Global.Iterables.Array {
     type Values<A extends any[]> = A extends (infer T)[] ? T : never;
 
     type Callback<OT, RT = any> = (object: OT, index?: number, array?: Array<OT>) => RT;
-    type Matcher<OT> = (...args: Parameters<Callback<OT>>) => boolean;
-    type Mapper<OT, RT = any> = (...args: Parameters<Callback<OT>>) => RT;
+    type AsyncCallback<OT, RT = any> = (object: OT, index?: number, array?: Array<OT>) => Promise<RT>;
+
+    // type Matcher<OT> = (...args: Parameters<Callback<OT>>) => boolean;
+    // type AsyncMatcher<OT> = (...args: Parameters<Callback<OT>>) => Promise<boolean>;
+    type Matcher<OT> = Callback<OT, boolean>;
+    type AsyncMatcher<OT> = AsyncCallback<OT, boolean>;
+
+    // type Finder<OT> = (...args: Parameters<Callback<OT>>) => OT | undefined;
+    // type AsyncFinder<OT> = (...args: Parameters<Callback<OT>>) => Promise<OT | undefined>;
+
+    type Finder<OT> = Callback<OT, OT | undefined>;
+    type AsyncFinder<OT> = AsyncCallback<OT, OT | undefined>;
+
+    // type Mapper<OT, RT = any> = (...args: Parameters<Callback<OT>>) => RT;
+    // type AsyncMapper<OT, RT = any> = (...args: Parameters<Callback<OT>>) => Promise<RT>;
+
+    type Mapper<OT, RT = any> = Callback<OT, RT>;
+    type AsyncMapper<OT, RT = any> = AsyncCallback<OT, RT>;
 
     type Push<T extends any[], V> = [ ...T, V ];
 }

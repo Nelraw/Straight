@@ -2,6 +2,8 @@
 declare namespace Global {
 
     type Dict<T = any> = { [key: string]: T };
+
+    type Async<F extends Function> = F extends (...args: any[]) => Promise<any> ? F : never;
     
     type Primitive<R extends boolean = false> = R extends false
         ? boolean | number | string | bigint | null | undefined

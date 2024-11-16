@@ -7,7 +7,16 @@ import { ProcessObject, ProcessError, ProcessErrorData, ErrorData } from '../../
 /// -------------------------------- ///
 
 // type Dict = Global.Dict;
-type Matcher<T> = Global.Iterables.Array.Matcher<T>;
+import $Array = Global.Iterables.Array;
+
+type Matcher<T> = $Array.Matcher<T>;
+type AsyncMatcher<T> = $Array.AsyncMatcher<T>;
+
+type Finder<T> = $Array.Finder<T>;
+type AsyncFinder<T> = $Array.AsyncFinder<T>;
+
+type Mapper<T, R = any> = $Array.Mapper<T, R>;
+type AsyncMapper<T, R = any> = $Array.AsyncMapper<T, R>;
 
 /// -------------------------------- ///
 
@@ -28,11 +37,47 @@ class ListError<K extends string | number, O> extends ProcessError {
     /// -------------------------------- ///
 }
 
+class UnexistingListItemError<K extends string | number, O> extends ListError<K, O> {
+
+    constructor(index: K, prop: string, list?: List<K, O>) {
+        try {
+            const message = `Attempt to perform "${prop}" method`;
+
+            super(`${message} on unexisting item (index: ${index})`, list);
+
+        } catch(err) { throw err; }
+    }
+}
+
+class EmptyListError<K extends string | number, O> extends ListError<K, O> {
+
+    constructor(prop: string, list?: List<K, O>) {
+        try {
+            const message = `Attempt to access "${prop}" property`;
+
+            super(`${message} on empty list`, list);
+
+        } catch(err) { throw err; }
+    }
+}
+
+class ListLengthError<K extends string | number, O> extends ListError<K, O> {
+
+    constructor(i: number, len: number, list?: List<K, O>) {
+        try {
+            const message = `Attempt to get item at "${i}"`;
+
+            super(`${message} on list of ${len} length`, list);
+
+        } catch(err) { throw err; }
+    }
+}
+
 class DuplicateListItemError<K extends string | number, O> extends ListError<K, O> {
 
     constructor(index: K, list?: List<K, O>) {
         try {
-            const message = `Try to duplicate item (index: "${index}")`;
+            const message = `Attempt to duplicate item (index: "${index}")`;
 
             super(message, list);
 
@@ -58,28 +103,41 @@ class List<K extends string | number, O> extends ProcessObject {
 
     /// -------------------------------- ///
 
-    protected get array() { return Array.from(this.list); }
-
     get length() { return this.list.size; }
 
-    get type() {
+    get types() {
         try {
-            const { list, array } = this;
-            if (list.size > 0) return makerOf(array[0]);
+            const { list: { size }, values } = this;
+
+            if (size == 0) throw new EmptyListError(`types`, this);
+
+            const types: { [key: string]: any } = {};
+
+            for (const value of values) {
+                const type = makerOf(value);
+                const { name } = type;
+
+                if (!types[name]) types[name] = type;
+            }
+
+            return types;
 
         } catch(err) { throw err; }
     }
 
-    get object() {
+    get object(): Record<K, O> {
         try {
-            const { entries } = this;
+            const { list: { size }, entries } = this;
+
+            if (size == 0) throw new EmptyListError(`object`, this);
+
             const result: any = {};
 
             for (const [ key, value ] of entries) {
                 result[key] = value;
             }
 
-            return result as Record<K, O>;
+            return result;
 
         } catch(err) { throw err; }
     }
@@ -88,20 +146,35 @@ class List<K extends string | number, O> extends ProcessObject {
     get values() { return Array.from(this.list.values()); }
     get entries() { return Array.from(this.list.entries()); }
 
-    keyOf(value: O) {
+    keyOf(query: O): K | undefined {
         try {
-            for (const [ k, v ] of this.list) {
-                if (v === value) return k;
+            const { list: { size }, entries } = this;
+
+            if (size == 0) throw new EmptyListError(`keyOf`, this);
+
+            for (const [ key, value ] of entries) {
+                if (value === query) return key;
             }
 
         } catch(err) { throw err; }
     }
 
-    has(key: K) { return this.list.has(key); }
-
-    get(key: K) {
+    has(key: K): boolean {
         try {
             const { list } = this;
+
+            if (list.size == 0) throw new EmptyListError(`has`, this);
+            
+            return list.has(key);
+
+        } catch(err) { throw err; }
+    }
+
+    get(key: K): O | undefined {
+        try {
+            const { list } = this;
+
+            if (list.size == 0) throw new EmptyListError(`get`, this);
 
             if (list.has(key)) return list.get(key);
 
@@ -110,18 +183,20 @@ class List<K extends string | number, O> extends ProcessObject {
 
     set(key: K, value: O): [ K, O ] {
         try {
-            if (this.list.has(key)) {
+            const { list } = this;
+
+            if (list.has(key)) {
                 throw new DuplicateListItemError(key, this);
             }
 
-            this.list.set(key, value);
+            list.set(key, value);
 
             return [ key, value ];
 
         } catch(err) { throw err; }
     }
 
-    add(...items: Array<[ K, O ]>) {
+    add(...items: Array<[ K, O ]>): Array<[ K, O ]> {
         try {
             const results: Array<[ K, O ]> = [];
 
@@ -131,123 +206,208 @@ class List<K extends string | number, O> extends ProcessObject {
                 results.push(set);
             }
 
+            return results;
+
         } catch(err) { throw err; }
     }
 
-    delete(key: K | O) {
+    delete(key: K | O): [ K, O ] | undefined {
         try {
             const { list } = this;
+
+            if (list.size == 0) throw new EmptyListError(`delete`, this);
+
             const type = typeof key;
             
             if (type !== `string` && type !== `number`) {
                 key = this.keyOf(key as O) as K;
             }
 
-            if (list.has(key as K)) return list.delete(key as K);
+            if (!list.has(key as K)) {
+                throw new UnexistingListItemError(key as K, `delete`, this);
+            }
+
+            const value = list.get(key as K);
+
+            list.delete(key as K);
+
+            return [ key as K, value as O ];
 
         } catch(err) { throw err; }
     }
 
-    clear() { return this.list.clear(); }
-
-    at(index: number) {
+    clear() {
         try {
-            const { list, array } = this;
-            if (list.size === 0) return;
+            const { list } = this;
 
-            const [ key, value ] =  array[index] ?? [];
+            if (list.size == 0) {
+                throw new EmptyListError(`clear`, this);
+            }
+
+            return list.clear();
+
+        } catch(err) { throw err; }
+    }
+
+    at(index: number): [ K, O ] | undefined {
+        try {
+            const { list: { size }, entries } = this;
+
+            if (size == 0) throw new EmptyListError(`at`, this);
+
+            if (index > size - 1) {
+                throw new ListLengthError(index, size, this);
+            }
+
+            const [ key, value ] =  entries[index];
 
             return [ key, value ];
-            // return value;
 
         } catch(err) { throw err; }
     }
 
     get first(): [ K, O ] | undefined {
         try {
-            const { list, array } = this;
-            if (list.size === 0) return;
+            const { list, entries } = this;
 
-            const [ key, value ] = array[0] ?? [];
+            if (list.size == 0) {
+                throw new EmptyListError(`first`, this);
+            }
+
+            const [ key, value ] = entries[0];
 
             return [ key, value ];
-            // return value;
 
         } catch(err) { throw err; }
     }
 
-    get last(){
+    get last(): [ K, O ] | undefined {
         try {
-            const { list, array } = this;
-            if (list.size === 0) return;
+            const { list, entries } = this;
 
-            const [ key, value ] = array[list.size - 1] ?? [];
+            if (list.size == 0) {
+                throw new EmptyListError(`first`, this);
+            }
+
+            const [ key, value ] = entries[list.size - 1];
 
             return [ key, value ];
-            // return value;
 
         } catch(err) { throw err; }
     }
 
-    shift() {
+    shift(): [ K, O ] | undefined {
         try {
-            const { list, array } = this;
-            if (list.size === 0) return;
+            const { list, entries } = this;
             
-            const [ key, value ] = array[0] ?? [];
+            if (list.size == 0) throw new EmptyListError(`shift`, this);
+            
+            const [ key, value ] = entries[0];
 
             this.delete(key);
 
             return [ key, value ];
-            // return value;
 
         } catch(err) { throw err; }
     }
 
-    pop() {
+    pop(): [ K, O ] | undefined {
         try {
-            const { size } = this.list;
-            if (size === 0) return;
+            const { list: { size }, entries } = this;
 
-            const [ key, value ] = this.array[size - 1] ?? [];
+            if (size == 0) throw new EmptyListError(`pop`, this);
+
+            const [ key, value ] = entries[size - 1] ?? [];
 
             this.delete(key);
 
             return [ key, value ];
-            // return value;
 
         } catch(err) { throw err; }
     }
 
-    find(matcher: Matcher<[ K, O ]>) {
+    find(finder: Finder<O>): [ K, O ] | undefined {
         try {
-            const [ key, value ] = this.array.find(matcher) ?? [];
+            const { list: { size }, entries } = this;
 
-            return [ key, value ];
-            // return value;
+            if (size == 0) throw new EmptyListError(`find`, this);
+
+            for (const [ key, value ] of entries) {
+                const found = finder(value);
+
+                if (found) return [ key, value ];
+            }
 
         } catch(err) { throw err; }
     }
 
-    filter(matcher: Matcher<[ K, O ]>) {
+    filter(matcher: Matcher<O>) {
         try {
+            const { list: { size }, entries } = this;
+
+            if (size == 0) throw new EmptyListError(`filter`, this);
+
             const results: Array<[ K, O ]> = [];
 
-            for (const [ key, value ] of this.list) {
-                if (matcher([ key, value ])) {
+            for (const [ key, value ] of entries) {
+                if (matcher(value)) {
                     results.push([ key, value ]);
                 }
             }
 
             return results;
-            // return this.array.filter(matcher);
+
+        } catch(err) { throw err; }
+    }
+
+    private fetchingPromises(finder: AsyncMatcher<O> | AsyncFinder<O>): Array<Promise<[ K, O | undefined ]>> {
+        try {
+            const { list: { size }, entries } = this;
+
+            if (size == 0) throw new EmptyListError(`fetch`, this);
+
+            type Result = [ K, O | undefined ];
+
+            const promises: Array<Promise<Result>> = [];
+
+            for (const [ key, value ] of entries) {
+                const promise = new Promise<Result>(async (resolve) => {
+                    const result = await (finder as AsyncFinder<O>)(value);
+
+                    resolve([ key, result ]);
+                });
+
+                promises.push(promise);
+            }
+            
+            return promises;
+
+        } catch(err) { throw err; }
+    }
+
+    async search(finder: AsyncMatcher<O> | AsyncFinder<O>): Promise<[ K, O | undefined ]> {
+        try {
+            const promises = this.fetchingPromises(finder);
+
+            return Promise.race(promises);
+
+        } catch(err) { throw err; }
+    }
+
+    async fetch(finder: AsyncMatcher<O> | AsyncFinder<O>): Promise<Array<[ K, O | undefined ]>> {
+        try {
+            const promises = this.fetchingPromises(finder);
+
+            return Promise.all(promises);
 
         } catch(err) { throw err; }
     }
 
     [Symbol.iterator]() {
         try {
-            return this.list[Symbol.iterator]();
+            const { list } = this;
+
+            return list[Symbol.iterator]();
 
         } catch(err) { throw err; }
     }

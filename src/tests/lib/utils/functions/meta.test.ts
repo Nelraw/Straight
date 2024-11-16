@@ -22,22 +22,33 @@ testing.MatrixError = class MatrixError extends ListError<string, any> {}
 testing.MegaMatrixError = class MegaMatrixError extends testing.MatrixError {}
 testing.Matrix = class Matrix extends List<string, any> {}
 
+testing.object = { bits: 64 };
+testing.array = [  1, 2, 3, 4, 5 ];
+
 testing.true = true;
 testing.false = false;
 
 testing.undefined = undefined;
 testing.null = null;
 
+testing.function = function() { return true; }
+testing.anonymousFunction = () => true;
+
+testing.async = async function() { return true; }
+testing.anonymousAsync = async () => true;
+
 async function test(objects: Global.Dict = testing) {
     try {
+
         for (const key in objects) {
             const object = objects[key];
             const meta = new $Meta.Meta(object);
 
-            const { type, parent, family, elder } = meta;
+            const { name, type, parent, family, elder } = meta;
             const { primitive, nullish, falsy, truthy } = meta;
 
             const lines = [
+                [ `Name`, name ],
                 [ `Type`, type ],
                 [ `Parent`, parent ],
                 [ `Elder`, elder ],
@@ -48,12 +59,12 @@ async function test(objects: Global.Dict = testing) {
                 [ `Family`, family ],
             ]
 
-            Print.show(`Meta of ${key}`);
+            Print.log.show(`Meta of ${key}`);
 
             for (const line of lines) {
                 const [ title, value ] = line;
 
-                Print.titled(`  → ${title}`, value, ``);
+                Print.titled(`  → ${title}`, value);
             }
 
             Print.br();

@@ -39,12 +39,6 @@ class ProcessError extends Error {
 
     declare name: string;
 
-    // code: number;
-    // reason: string;
-    // details: string;
-
-    // source?: { object?: object, error?: Error };
-
     constructor(data: ProcessErrorData) {
         try {
             let message: string = typeof data !== 'string' 
@@ -55,7 +49,7 @@ class ProcessError extends Error {
 
             super(message);
 
-            const { name, code, reason, details } = data;
+            const { name } = data;
 
             if (name) this.name = name;
             else getConstructor(this).name;

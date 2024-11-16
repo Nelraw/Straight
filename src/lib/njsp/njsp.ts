@@ -1,9 +1,5 @@
 
-import {
-    Process,
-    ProcessObject, ProcessError,
-    ErrorData
-} from './Process.js';
+import { Process, ProcessObject, ProcessError, type ErrorData } from './Process.js';
 
 import * as config from '../../config/njsp.config.js';
 
@@ -29,5 +25,7 @@ export {
     njsp as default, njsp,
     CWD, ENV, PACKAGE,
 
-    ProcessObject, ProcessError, ErrorData, Print
+    ProcessObject, ProcessError, Print,
+
+    type ErrorData,
 }

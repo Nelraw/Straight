@@ -86,7 +86,7 @@ class Timestamp {
         } catch(error) { throw error; }
     }
 
-    format(level: 'date' | 'clock' | true = true) {	
+    format(level: 'date' | 'clock' | true = true): string {	
         try {
             if (level !== true) {
                 const key = level as string;
@@ -137,7 +137,7 @@ const today = () => {
     } catch(err) { throw err; }
 }
 
-const now = () => {
+const clock = () => {
     try {
         const [ open, close ] = mark('hooks');
         const { clock } = new Timestamp();
@@ -147,10 +147,20 @@ const now = () => {
     } catch(err) { throw err; }
 }
 
+const now = () => {
+    try {
+        const [ open, close ] = mark('hooks');
+        const now = new Timestamp().format(true);
+
+        return `${open}${now}${close}`; 
+
+    } catch(err) { throw err; }
+}
+
 /// -------------------------------- ///
 
 export {    
-    Timestamp, timestamp, today, now,
+    Timestamp, timestamp, today, clock, now,
 
     type Time,
 }
